@@ -473,9 +473,14 @@ class DbCommand
             && $this->_connection->queryCacheID !== false
             && ($cache = ORMContext::cache()) !== null) {
             $this->_connection->queryCachingCount--;
-            $cacheKey = 'yii:dbquery' . ':' . $method . ':' . $this->_connection->connectionString . ':' . $this->_connection->username;
-            $cacheKey .= ':' . $this->getText() . ':' . serialize(array_merge($this->_paramLog, $params));
-            if (($result = $cache->get($cacheKey)) !== false) {
+            $cacheKey = 'yii#dbquery#' . md5(
+                    $method . '#' .
+                    $this->_connection->connectionString . '#' .
+                    $this->_connection->username . '#' .
+                    $this->getText() . '#' .
+                    serialize(array_merge($this->_paramLog, $params))
+                );
+            if (($result = $cache->get($cacheKey)) !== null) {
                 return $result[0];
             }
         }
@@ -500,7 +505,7 @@ class DbCommand
             }, $this->getText(), $params);
 
             if (isset($cache, $cacheKey))
-                $cache->set($cacheKey, array($result), $this->_connection->queryCachingDuration, $this->_connection->queryCachingDependency);
+                $cache->set($cacheKey, array($result), $this->_connection->queryCachingDuration);
 
             return $result;
         } catch (Exception $e) {

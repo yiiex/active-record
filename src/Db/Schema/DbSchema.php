@@ -90,9 +90,9 @@ abstract class DbSchema
             }
 
             if (!isset($this->_cacheExclude[$name]) && ($duration = $this->_connection->schemaCachingDuration) > 0 && $cache = ORMContext::cache()) {
-                $key = 'yii:dbschema' . $this->_connection->connectionString . ':' . $this->_connection->username . ':' . $name;
+                $key = $this->getTableCacheKey($name);
                 $table = $cache->get($key);
-                if ($refresh === true || $table === false) {
+                if ($refresh === true || $table === null) {
                     $table = $this->loadTable($realName);
                     if ($table !== null)
                         $cache->set($key, $table, $duration);
@@ -106,6 +106,12 @@ abstract class DbSchema
 
             return $table;
         }
+    }
+
+    protected function getTableCacheKey(string $name): string
+    {
+        $connectionString = str_replace([':', ';', '@'], '#', $this->_connection->connectionString);
+        return 'yii#dbschema' . $connectionString . '#' . $this->_connection->username . '#' . $name;
     }
 
     /**
@@ -159,8 +165,7 @@ abstract class DbSchema
         if ($this->_connection->schemaCachingDuration > 0 && $cache = ORMContext::cache()) {
             foreach (array_keys($this->_tables) as $name) {
                 if (!isset($this->_cacheExclude[$name])) {
-                    $key = 'yii:dbschema' . $this->_connection->connectionString . ':' . $this->_connection->username . ':' . $name;
-                    $cache->delete($key);
+                    $cache->delete($this->getTableCacheKey($name));
                 }
             }
         }
