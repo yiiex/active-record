@@ -17,6 +17,20 @@ class ConditionBuilder
 
     }
 
+    public function scopes(string|array $scopes): static
+    {
+        $this->criteria->mergeWith(['scopes' => (array)$scopes]);
+        return $this;
+    }
+
+    public function applyScopes(string|array $scopes, string $operator = 'AND'): static
+    {
+        $tempCriteria = new DbCriteria(['alias' => $this->criteria->alias, 'scopes' => (array)$scopes]);
+        $this->model->applyScopes($tempCriteria);
+        $this->criteria->mergeWith(['condition' => $tempCriteria->condition, 'params' => $tempCriteria->params], $operator);
+        return $this;
+    }
+
     public function like(string $column, string $value, $operator = 'AND'): static
     {
         $this->criteria->addCondition("$column LIKE " . $this->criteria->addParam($value), $operator);
@@ -27,7 +41,7 @@ class ConditionBuilder
     {
         if ($column instanceof \Closure) {
             $column($cb = new ConditionBuilder($this->model, new DbCriteria(), $this->modelContext));
-            $this->criteria->mergeWith($cb->criteria);
+            $this->criteria->mergeWith($cb->criteria, $operator);
         } else {
             if ($value === null) {
                 $value = $comparison;
@@ -50,9 +64,12 @@ class ConditionBuilder
         return $this;
     }
 
-    public function whereRaw(string $condition, string $operator = 'AND'): static
+    public function whereRaw(string $condition, array $params = [], string $operator = 'AND'): static
     {
         $this->criteria->addCondition($condition, $operator);
+        foreach ($params as $name => $param) {
+            $this->criteria->addParam($param, $name);
+        }
         return $this;
     }
 
@@ -64,7 +81,7 @@ class ConditionBuilder
             $callback($conditionBuilder);
         }
         $cmd = $this->model->commandBuilder->createFindCommand($tableName, $conditionBuilder->criteria, $tableAlias);
-        $this->whereRaw('EXISTS(' . $cmd->getText() . ')', $operator);
+        $this->whereRaw('EXISTS(' . $cmd->getText() . ')', operator: $operator);
         $this->criteria->params += $conditionBuilder->criteria->params;
         return $this;
     }
@@ -109,7 +126,6 @@ class ConditionBuilder
         if ($callback) {
             $callback($conditionBuilder);
         }
-
         if ($rel instanceof BelongsToRelation) {
             $fkMap = is_string($rel->foreignKey) ? [$rel->foreignKey => $model->getTableSchema()->primaryKey] : $rel->foreignKey;
         } else {
@@ -122,11 +138,13 @@ class ConditionBuilder
             }
             $conditionBuilder->whereRaw("{$relAlias}.{$fk} = {$modelAlias}.{$pk}");
         }
+        $relModel->tableAlias = $relAlias;
+        $relModel->applyScopes($conditionBuilder->criteria);
         $cmd = $relModel->commandBuilder->createFindCommand($relModel->tableName(), $conditionBuilder->criteria, $relAlias);
         if ($rel->through) {
             $this->whereRelation($rel->through, fn(ConditionBuilder $builder) => $builder->whereRaw('EXISTS(' . $cmd->getText() . ')'));
         } else {
-            $this->whereRaw('EXISTS(' . $cmd->getText() . ')', $operator);
+            $this->whereRaw('EXISTS(' . $cmd->getText() . ')', operator: $operator);
         }
         $this->criteria->params += $conditionBuilder->criteria->params;
         return $this;

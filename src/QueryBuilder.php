@@ -54,7 +54,13 @@ class QueryBuilder
 
     public function scopes(string|array $scopes): static
     {
-        $this->criteria->mergeWith(['scopes' => (array)$scopes]);
+        $this->conditionBuilder->scopes($scopes);
+        return $this;
+    }
+
+    public function applyScopes(string|array $scopes): static
+    {
+        $this->conditionBuilder->applyScopes($scopes);
         return $this;
     }
 
@@ -64,7 +70,13 @@ class QueryBuilder
         return $this;
     }
 
-    public function where(string|\Closure $column, mixed $comparison, mixed $value = null, $operator = 'AND'): static
+    public function whereRaw(string $condition, array $params = [], string $operator = 'AND'): static
+    {
+        $this->conditionBuilder->whereRaw($condition, $params, $operator);
+        return $this;
+    }
+
+    public function where(string|\Closure $column, mixed $comparison = null, mixed $value = null, $operator = 'AND'): static
     {
         $this->conditionBuilder->where($column, $comparison, $value, $operator);
         return $this;

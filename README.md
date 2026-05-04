@@ -118,9 +118,8 @@ class User extends ActiveRecord
 // Find one
 $user = User::model()->findByAttributes(['email' => 'test@example.com']);
 
-// Fluent query builder
-$users = User::model()
-    ->queryBuilder()
+// new fluent query builder
+$users = User::queryBuilder()
     ->where('status', 1)
     ->orderBy('created_at DESC')
     ->limit(10)
