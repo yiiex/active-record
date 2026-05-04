@@ -14,7 +14,7 @@ use Yii1x\ActiveRecord\Contracts\BehaviorInterface;
 class Behavior extends CComponent implements BehaviorInterface
 {
     private bool $_enabled = false;
-    private ?CComponent $_owner;
+    private ?CComponent $_owner = null;
 
     /**
      * Declares events and the corresponding event handler methods.

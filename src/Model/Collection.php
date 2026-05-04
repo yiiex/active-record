@@ -38,6 +38,11 @@ class Collection implements IteratorAggregate, ArrayAccess, Countable
 
     public function count(): int
     {
+        return $this->getCount();
+    }
+
+    public function getCount(): int
+    {
         return $this->_c;
     }
 
@@ -68,8 +73,9 @@ class Collection implements IteratorAggregate, ArrayAccess, Countable
             } else {
                 throw new \InvalidArgumentException(sprintf('List index %d is out of bound.', $index));
             }
+        } else {
+            throw new \RuntimeException('The list is read only.');
         }
-        throw new \RuntimeException('The list is read only.');
     }
 
     public function remove($item): false|int|string
@@ -138,28 +144,27 @@ class Collection implements IteratorAggregate, ArrayAccess, Countable
     }
 
 
-    public function offsetExists($offset)
+    public function offsetExists($offset): bool
     {
-        return ($offset>=0 && $offset<$this->_c);
+        return ($offset >= 0 && $offset < $this->_c);
     }
 
-    public function offsetGet($offset)
+    public function offsetGet($offset): mixed
     {
         return $this->itemAt($offset);
     }
 
-    public function offsetSet($offset,$item)
+    public function offsetSet($offset, $item): void
     {
-        if($offset===null || $offset===$this->_c)
-            $this->insertAt($this->_c,$item);
-        else
-        {
+        if ($offset === null || $offset === $this->_c)
+            $this->insertAt($this->_c, $item);
+        else {
             $this->removeAt($offset);
-            $this->insertAt($offset,$item);
+            $this->insertAt($offset, $item);
         }
     }
 
-    public function offsetUnset($offset)
+    public function offsetUnset($offset): void
     {
         $this->removeAt($offset);
     }

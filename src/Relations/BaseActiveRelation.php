@@ -29,7 +29,7 @@ class BaseActiveRelation
      * @var string GROUP BY clause. For {@link CActiveRelation} descendant classes, column names
      * referenced in this property should be disambiguated with prefix 'relationName.'.
      */
-    public string $group = '';
+    public string|array $group = '';
     /**
      * @var string how to join with other tables. This refers to the JOIN clause in an SQL statement.
      * For example, <code>'LEFT JOIN users ON users.id=authorID'</code>.
