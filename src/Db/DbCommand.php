@@ -1604,7 +1604,7 @@ class DbCommand
         ORMContext::dispatch(new EndQueryEvent(
             bin2hex(random_bytes(8)),
             $sql,
-            $params,
+            array_merge($params, $this->_paramLog),
             microtime(true) - $start,
             $this->getConnection()->connectionName,
             $this->getConnection(),
