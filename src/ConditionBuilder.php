@@ -40,7 +40,7 @@ class ConditionBuilder
     public function where(string|\Closure $column, mixed $comparison = null, mixed $value = null, $operator = 'AND'): static
     {
         if ($column instanceof \Closure) {
-            $column($cb = new ConditionBuilder($this->model, new DbCriteria(), $this->modelContext));
+            $column($cb = new ConditionBuilder($this->model, new DbCriteria(['alias' => $this->criteria->alias]), $this->modelContext));
             $this->criteria->mergeWith($cb->criteria, $operator);
         } else {
             if ($value === null) {
