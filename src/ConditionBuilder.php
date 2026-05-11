@@ -64,6 +64,18 @@ class ConditionBuilder
         return $this;
     }
 
+    public function whereNull(string $column, string $operator = 'AND'): static
+    {
+        $this->criteria->addCondition("$column IS NULL", $operator);
+        return $this;
+    }
+
+    public function whereNotNull(string $column, string $operator = 'AND'): static
+    {
+        $this->criteria->addCondition("$column IS NOT NULL", $operator);
+        return $this;
+    }
+
     public function whereRaw(string $condition, array $params = [], string $operator = 'AND'): static
     {
         $this->criteria->addCondition($condition, $operator);
@@ -150,4 +162,25 @@ class ConditionBuilder
         return $this;
     }
 
+    /**
+     * Conditionally modify the condition builder based on a given condition
+     *
+     * This method allows for clean conditional condition building without breaking the chain.
+     * When the condition is truthy, the callback receives the condition builder instance.
+     * Optionally, a fallback callback can be provided for falsy conditions.
+     *
+     * @param mixed $condition The condition to evaluate
+     * @param \Closure $callback Called when condition is truthy, receives condition builder
+     * @param \Closure|null $fallback Called when condition is falsy (optional)
+     * @return $this
+     */
+    public function when(mixed $condition, \Closure $callback, ?\Closure $fallback = null): static
+    {
+        if ($condition) {
+            $callback($this, $condition);
+        } elseif ($fallback) {
+            $fallback($this);
+        }
+        return $this;
+    }
 }
