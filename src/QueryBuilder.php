@@ -16,6 +16,12 @@ class QueryBuilder
         $this->criteria = $criteria ?: new DbCriteria(['alias' => 't']);
     }
 
+    public function distinct(bool $value = true): static
+    {
+        $this->criteria->distinct = $value;
+        return $this;
+    }
+
     public function select(string|array $column): static
     {
         $this->criteria->select = $column;
@@ -40,15 +46,33 @@ class QueryBuilder
         return $this;
     }
 
+    public function indexBy(string $property): static
+    {
+        $this->criteria->index = $property;
+        return $this;
+    }
+
     public function groupBy(string|array $column): static
     {
         $this->criteria->group = $column;
         return $this;
     }
 
+    public function having(string $condition): static
+    {
+        $this->criteria->having = $condition;
+        return $this;
+    }
+
     public function with(string|array $with): static
     {
         $this->criteria->mergeWith(['with' => (array)$with]);
+        return $this;
+    }
+
+    public function together(bool $value = true): static
+    {
+        $this->criteria->together = $value;
         return $this;
     }
 
@@ -67,12 +91,6 @@ class QueryBuilder
     public function like(string $column, string $value, $operator = 'AND'): static
     {
         $this->conditionBuilder->like($column, $value, $operator);
-        return $this;
-    }
-
-    public function whereRaw(string $condition, array $params = [], string $operator = 'AND'): static
-    {
-        $this->conditionBuilder->whereRaw($condition, $params, $operator);
         return $this;
     }
 
@@ -106,10 +124,52 @@ class QueryBuilder
         return $this;
     }
 
+    public function whereBetween(string $column, mixed $start, mixed $end, string $operator = 'AND'): static
+    {
+        $this->conditionBuilder->whereBetween($column, $start, $end, $operator);
+        return $this;
+    }
+
+    public function whereRaw(string $condition, array $params = [], string $operator = 'AND'): static
+    {
+        $this->conditionBuilder->whereRaw($condition, $params, $operator);
+        return $this;
+    }
+
     public function whereRelation(string $relation, ?\Closure $callback = null, string $operator = 'AND', string $relAlias = null): static
     {
         $this->conditionBuilder->whereRelation($relation, $callback, $operator, $relAlias);
         return $this;
+    }
+
+    public function join(string $table, string $condition, string $type = 'INNER JOIN', ?string $tableAlias = null): static
+    {
+        $join = implode(' ', array_filter([
+                $type,
+                $this->model->dbConnection->quoteTableName($table),
+                $tableAlias,
+            ])) . " ON {$condition}";
+        if ($this->criteria->join === '') {
+            $this->criteria->join = $join;
+        } else {
+            $this->criteria->join .= ' ' . $join;
+        }
+        return $this;
+    }
+
+    public function leftJoin(string $table, string $condition, ?string $tableAlias = null): static
+    {
+        return $this->join($table, $condition, 'LEFT JOIN', $tableAlias);
+    }
+
+    public function rightJoin(string $table, string $condition, ?string $tableAlias = null): static
+    {
+        return $this->join($table, $condition, 'RIGHT JOIN', $tableAlias);
+    }
+
+    public function innerJoin(string $table, string $condition, ?string $tableAlias = null): static
+    {
+        return $this->join($table, $condition, 'INNER JOIN', $tableAlias);
     }
 
     /**
@@ -149,6 +209,11 @@ class QueryBuilder
     public function count(): int
     {
         return $this->model->count(clone $this->criteria);
+    }
+
+    public function exists(): bool
+    {
+        return $this->model->exists(clone $this->criteria);
     }
 
     public function find(): ?ActiveRecord

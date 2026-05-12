@@ -4,7 +4,7 @@ namespace Yii1x\ActiveRecord;
 
 use Yii1x\ActiveRecord\Db\Schema\DbCriteria;
 use Yii1x\ActiveRecord\Exceptions\DbException;
-use Yii1x\ActiveRecord\Relations\{ActiveRelation, BelongsToRelation};
+use Yii1x\ActiveRecord\Relations\{ActiveRelation, BelongsToRelation, ManyManyRelation};
 
 class ConditionBuilder
 {
@@ -76,6 +76,12 @@ class ConditionBuilder
         return $this;
     }
 
+    public function whereBetween(string $column, mixed $start, mixed $end, string $operator = 'AND'): static
+    {
+        $this->criteria->addBetweenCondition($column, $start, $end, $operator);
+        return $this;
+    }
+
     public function whereRaw(string $condition, array $params = [], string $operator = 'AND'): static
     {
         $this->criteria->addCondition($condition, $operator);
@@ -134,31 +140,42 @@ class ConditionBuilder
         }
         $relAlias ??= $relation;
         $relModel = ActiveRecord::model($rel->className);
-        $conditionBuilder = new static($relModel, new DbCriteria(['select' => '1', 'alias' => $relAlias]));
+        $queryBuilder = new QueryBuilder($relModel, new DbCriteria(['select' => '1', 'alias' => $relAlias]));
         if ($callback) {
-            $callback($conditionBuilder);
+            $queryBuilder->where($callback);
         }
-        if ($rel instanceof BelongsToRelation) {
-            $fkMap = is_string($rel->foreignKey) ? [$rel->foreignKey => $model->getTableSchema()->primaryKey] : $rel->foreignKey;
-        } else {
-            $fkMap = is_string($rel->foreignKey) ? [$relModel->getTableSchema()->primaryKey => $rel->foreignKey] : $rel->foreignKey;
-        }
-
-        foreach ($fkMap as $pk => $fk) {
-            if (is_array($pk) || is_array($fk)) {
-                throw new DbException("Relation '{$relation}' has composite key. " . "Define all fields explicitly in foreignKey array.");
+        if ($rel instanceof ManyManyRelation) {
+            if ($rel->through) {
+                throw new DbException('MANY_MANY relation "' . $relation . '" does not support through.');
             }
-            $conditionBuilder->whereRaw("{$relAlias}.{$fk} = {$modelAlias}.{$pk}");
+            $junctionAlias = $relAlias.'_j';
+            $keys = $rel->getJunctionForeignKeys();
+            $condition = "{$relAlias}.{$relModel->getTableSchema()->primaryKey} = {$junctionAlias}.{$keys[1]}";
+            $queryBuilder->innerJoin($rel->getJunctionTableName(), $condition, $junctionAlias);
+            $queryBuilder->whereRaw("{$junctionAlias}.{$keys[0]} = {$modelAlias}.{$model->getTableSchema()->primaryKey}");
+        } else {
+            if ($rel instanceof BelongsToRelation) {
+                $fkMap = is_string($rel->foreignKey) ? [$rel->foreignKey => $model->getTableSchema()->primaryKey] : $rel->foreignKey;
+            } else {
+                $fkMap = is_string($rel->foreignKey) ? [$relModel->getTableSchema()->primaryKey => $rel->foreignKey] : $rel->foreignKey;
+            }
+
+            foreach ($fkMap as $pk => $fk) {
+                if (is_array($pk) || is_array($fk)) {
+                    throw new DbException("Relation '{$relation}' has composite key. " . "Define all fields explicitly in foreignKey array.");
+                }
+                $queryBuilder->whereRaw("{$relAlias}.{$fk} = {$modelAlias}.{$pk}");
+            }
         }
         $relModel->tableAlias = $relAlias;
-        $relModel->applyScopes($conditionBuilder->criteria);
-        $cmd = $relModel->commandBuilder->createFindCommand($relModel->tableName(), $conditionBuilder->criteria, $relAlias);
+        $relModel->applyScopes($queryBuilder->criteria);
+        $cmd = $relModel->commandBuilder->createFindCommand($relModel->tableName(), $queryBuilder->criteria, $relAlias);
         if ($rel->through) {
             $this->whereRelation($rel->through, fn(ConditionBuilder $builder) => $builder->whereRaw('EXISTS(' . $cmd->getText() . ')'));
         } else {
             $this->whereRaw('EXISTS(' . $cmd->getText() . ')', operator: $operator);
         }
-        $this->criteria->params += $conditionBuilder->criteria->params;
+        $this->criteria->params += $queryBuilder->criteria->params;
         return $this;
     }
 
