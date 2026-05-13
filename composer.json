@@ -1,16 +1,12 @@
 {
     "name": "yii1x/active-record",
     "description": "Yii 1.1 Active Record, extracted and modernized for PHP 8.4+",
+    "license": "BSD-3-Clause",
     "autoload": {
         "psr-4": {
             "Yii1x\\ActiveRecord\\": "src/"
         }
     },
-    "authors": [
-        {
-            "name": "Galtsev Timofey"
-        }
-    ],
     "minimum-stability": "dev",
     "prefer-stable": true,
     "require": {
