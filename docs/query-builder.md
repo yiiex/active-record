@@ -22,7 +22,7 @@ Fluent query builder for ActiveRecord. Provides a chainable interface for buildi
 ```php
 use Yii1x\ActiveRecord\QueryBuilder;
 
-$posts = Post::query()
+$posts = Post::queryBuilder()
     ->where('status', 'published')
     ->orderBy('created_at DESC')
     ->limit(10)
@@ -101,16 +101,6 @@ $qb->whereRaw('created_at >= :date', [':date' => '2024-01-01']);
 
 ```php
 $qb->like('title', '%laravel%');
-```
-
-### whereHas
-
-Check for existence of related records in an arbitrary table:
-
-```php
-$qb->whereHas('comments', function (ConditionBuilder $cb) {
-    $cb->where('status', 'approved');
-});
 ```
 
 ### whereRelation
@@ -244,7 +234,7 @@ The truthy value is passed as the second argument to the callback.
 Creates an independent copy of the builder with cloned criteria. Useful for branching queries:
 
 ```php
-$baseQb = Post::query()->where('type', 'article');
+$baseQb = Post::queryBuilder()->where('type', 'article');
 
 $published = $baseQb->fork()->where('status', 'published')->count();
 $drafts    = $baseQb->fork()->where('status', 'draft')->count();
@@ -257,8 +247,8 @@ $drafts    = $baseQb->fork()->where('status', 'draft')->count();
 All methods except execution methods (`count`, `exists`, `find`, `findAll`, `deleteAll`) return `$this`:
 
 ```php
-$posts = Post::query()
-    ->select('id, title')
+$posts = Post::queryBuilder()
+    ->select(['id', 'title'])
     ->distinct()
     ->where('status', 'published')
     ->whereRelation('tags', fn($cb) => $cb->whereIn('name', ['php', 'laravel']))
