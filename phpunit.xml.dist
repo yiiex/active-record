@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         cacheDirectory=".phpunit.cache"
+         executionOrder="depends,defects"
+         failOnRisky="true"
+         failOnWarning="true"
+         beStrictAboutOutputDuringTests="true"
+         beStrictAboutTestsThatDoNotTestAnything="true">
+    <php>
+        <env name="MYSQL_DSN" value="mysql:host=mysql;dbname=testdb;charset=utf8mb4"/>
+        <env name="MYSQL_USER" value="root"/>
+        <env name="MYSQL_PASSWORD" value="root"/>
+        <env name="PGSQL_DSN" value="pgsql:host=postgres;dbname=testdb"/>
+        <env name="PGSQL_USER" value="postgres"/>
+        <env name="PGSQL_PASSWORD" value="postgres"/>
+        <env name="SQLITE_DSN" value="sqlite::memory:"/>
+    </php>
+
+    <testsuites>
+        <testsuite name="Driver Tests">
+            <directory suffix="Test.php">tests/Driver</directory>
+            <exclude>tests/Driver/Abstract</exclude>
+            <exclude>tests/Infrastructure</exclude>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory suffix=".php">src</directory>
+        </include>
+    </source>
+</phpunit>

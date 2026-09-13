@@ -209,12 +209,6 @@ class DbConnection
      */
     public string $queryCacheID = 'cache';
     /**
-     * @var boolean whether the database connection should be automatically established
-     * the component is being initialized. Defaults to true. Note, this property is only
-     * effective when the CDbConnection object is used as an application component.
-     */
-    public bool $autoConnect = true;
-    /**
      * @var string|null the charset used for database connection. The property is only used
      * for MySQL, MariaDB and PostgreSQL databases. Defaults to null, meaning using default charset
      * as specified by the database.
@@ -309,6 +303,7 @@ class DbConnection
         string $username,
         string $password,
         public readonly string $connectionName,
+        public bool $autoConnect = true,
     )
     {
         $this->connectionString = $dsn;
@@ -468,9 +463,9 @@ class DbConnection
 
     /**
      * Returns the PDO instance.
-     * @return PDO the PDO instance, null if the connection is not established yet
+     * @return null|PDO the PDO instance, null if the connection is not established yet
      */
-    public function getPdoInstance(): PDO
+    public function getPdoInstance(): ?PDO
     {
         return $this->_pdo;
     }

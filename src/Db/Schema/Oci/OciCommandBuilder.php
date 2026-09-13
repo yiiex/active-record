@@ -33,7 +33,7 @@ class OciCommandBuilder extends DbCommandBuilder
      * @param mixed $table the table schema ({@link DbTableSchema}) or the table name (string).
      * @return mixed last insertion id. Null is returned if no sequence name.
      */
-    public function getLastInsertID($table)
+    public function getLastInsertID(mixed $table): mixed
     {
         return $this->returnID;
     }
