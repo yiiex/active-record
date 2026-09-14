@@ -20,6 +20,12 @@
     </php>
 
     <testsuites>
+        <!-- Unit tests: fast, no database required -->
+        <testsuite name="Unit Tests">
+            <directory suffix="Test.php">tests/Unit</directory>
+        </testsuite>
+
+        <!-- Integration tests: require database containers -->
         <testsuite name="Driver Tests">
             <directory suffix="Test.php">tests/Driver</directory>
             <exclude>tests/Driver/Abstract</exclude>

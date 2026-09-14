@@ -244,9 +244,9 @@ class CComponent
                     return call_user_func_array(array($object, $name), $parameters);
             }
         }
-        if (class_exists('Closure', false) && ($this->canGetProperty($name) || property_exists($this, $name)) && $this->$name instanceof Closure)
+        if (class_exists('Closure', false) && ($this->canGetProperty($name) || property_exists($this, $name)) && $this->$name instanceof \Closure)
             return call_user_func_array($this->$name, $parameters);
-        throw new \RuntimeException('%s and its behaviors do not have a method or closure named "%s".', static::class, $name);
+        throw new \RuntimeException(sprintf('%s and its behaviors do not have a method or closure named "%s".', static::class, $name));
     }
 
     /**
@@ -452,7 +452,7 @@ class CComponent
                 $this->_e[$name] = new Collection();
             return $this->_e[$name];
         } else {
-            throw new \InvalidArgumentException('Event "%s::%s" is not defined.', static::class, $name);
+            throw new \InvalidArgumentException(sprintf('Event "%s::%s" is not defined.', static::class, $name));
         }
     }
 

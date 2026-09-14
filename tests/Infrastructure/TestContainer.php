@@ -4,10 +4,16 @@ namespace Yii1x\ActiveRecord\Tests\Infrastructure;
 
 use Psr\Container\ContainerInterface;
 use Psr\Container\NotFoundExceptionInterface;
+use Psr\Log\{LoggerInterface, NullLogger};
 
 class TestContainer implements ContainerInterface
 {
     private array $services = [];
+
+    public function __construct()
+    {
+        $this->set(LoggerInterface::class, new NullLogger());
+    }
 
     public function set($id, $value): static
     {

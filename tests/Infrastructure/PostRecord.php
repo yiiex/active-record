@@ -1,0 +1,16 @@
+<?php
+
+namespace Yii1x\ActiveRecord\Tests\Infrastructure;
+
+class PostRecord
+{
+    public int|string $id;
+    public ?string $title = null;
+    public ?string $content = null;
+    public ?string $create_time = null;
+    public int|string $author_id;
+
+    public function __construct(public ?string $param1, public ?string $param2)
+    {
+    }
+}

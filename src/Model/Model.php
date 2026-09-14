@@ -254,22 +254,26 @@ abstract class Model extends CComponent implements IteratorAggregate, ArrayAcces
 
     /**
      * Returns a value indicating whether there is any validation error.
-     * @param array|string|null $attribute attribute name. Use null to check all attributes.
+     * @param string|null $attribute attribute name. Use null to check all attributes.
      * @return boolean whether there is any error.
      */
-    public function hasErrors(array|string|null $attribute = null): bool
+    public function hasErrors(string|null $attribute = null): bool
     {
         return $this->getValidator()->hasErrors($attribute);
     }
 
     /**
      * Returns the errors for all attribute or a single attribute.
-     * @param array|string|null $attribute attribute name. Use null to retrieve errors for all attributes.
+     * @param string|null $attribute attribute name. Use null to retrieve errors for all attributes.
      * @return array errors for all attributes or the specified attribute. Empty array is returned if no error.
      */
-    public function getErrors(array|string|null $attribute = null): array
+    public function getErrors(string|null $attribute = null): array
     {
-        return $this->getValidator()->getErrors($attribute);
+        $errors = $this->getValidator()->getErrors();
+        if ($attribute === null)
+            return $errors;
+        else
+            return $errors[$attribute] ?? [];
     }
 
     /**
@@ -279,8 +283,8 @@ abstract class Model extends CComponent implements IteratorAggregate, ArrayAcces
      */
     public function getError(string $attribute): ?string
     {
-        $errors = $this->getValidator()->getErrors($attribute);
-        return $errors ? reset($errors) : null;
+        $errors = $this->getValidator()->getErrors();
+        return isset($errors[$attribute]) ? reset($errors[$attribute]) : null;
     }
 
     /**

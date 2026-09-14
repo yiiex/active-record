@@ -5,6 +5,7 @@ namespace Yii1x\ActiveRecord\Tests\Driver\Abstract;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Yii1x\ActiveRecord\Db\DbConnection;
+use Yii1x\ActiveRecord\Tests\Infrastructure\TestContainer;
 
 abstract class AbstractDatabaseTest extends TestCase
 {

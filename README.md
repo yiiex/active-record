@@ -6,6 +6,7 @@ Familiar API. Zero framework lock-in.
 
 [![Packagist](https://img.shields.io/packagist/v/yii1x/active-record)](https://packagist.org/packages/yii1x/active-record)
 [![License](https://img.shields.io/packagist/l/yii1x/active-record)](https://packagist.org/packages/yii1x/active-record)
+[![CI](https://github.com/yiiex/active-record/actions/workflows/ci.yaml/badge.svg?branch=master)](https://github.com/yiiex/active-record/actions/workflows/ci.yaml)
 
 ---
 
@@ -127,7 +128,22 @@ $users = User::queryBuilder()
     ->findAll();
 ```
 
----
+## Testing
+
+The package includes tests for **MySQL**, **PostgreSQL**, and **SQLite** to ensure cross-database compatibility.
+Requires Docker Compose to launch database containers (SQLite runs in-memory).
+
+```bash
+# Start database containers
+docker-compose up -d
+
+# Run all tests
+docker-compose run --rm php vendor/bin/phpunit
+
+# Run specific driver only (faster during development)
+docker-compose run --rm php vendor/bin/phpunit --filter "Mysql" # or "Pgsql" / "Sqlite"
+```
+Tests run automatically on GitHub Actions for every push and pull request. See full setup details in [docker-compose.yaml](docker-compose.yaml).
 
 ## Framework Agnostic
 

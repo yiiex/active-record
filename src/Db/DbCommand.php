@@ -11,6 +11,7 @@
 namespace Yii1x\ActiveRecord\Db;
 
 use Exception;
+use PDO;
 use PDOException;
 use PDOStatement;
 use Yii1x\ActiveRecord\Db\Schema\DbExpression;
@@ -109,7 +110,20 @@ class DbCommand
     {
         if (is_array($query)) {
             foreach ($query as $name => $value) {
-                $this->$name = $value;
+                match ($name) {
+                    'select' => $this->select($value),
+                    'from' => $this->from($value),
+                    'where' => $this->where($value),
+                    'join' => $this->join(...),
+                    'group' => $this->group($value),
+                    'having' => $this->having($value),
+                    'order' => $this->order($value),
+                    'limit' => $this->limit($value),
+                    'offset' => $this->offset($value),
+                    'union' => $this->union($value),
+                    'params' => $this->params = $value,
+                    default => $this->$name = $value,
+                };
             }
         } else {
             $this->setText($query);
@@ -150,7 +164,7 @@ class DbCommand
      */
     public function reset(): static
     {
-        $this->_text = null;
+        $this->_text = '';
         $this->_query = [];
         $this->_statement = null;
         $this->_paramLog = [];
@@ -159,13 +173,13 @@ class DbCommand
     }
 
     /**
-     * @return string the SQL statement to be executed
+     * @return null|string the SQL statement to be executed
      */
     public function getText(): string
     {
         if ($this->_text == '' && !empty($this->_query))
             $this->setText($this->buildQuery($this->_query));
-        return $this->_text;
+        return $this->_text ?? '';
     }
 
     /**
@@ -193,10 +207,10 @@ class DbCommand
     }
 
     /**
-     * @return PDOStatement the underlying PDOStatement for this command
+     * @return null|PDOStatement the underlying PDOStatement for this command
      * It could be null if the statement is not prepared yet.
      */
-    public function getPdoStatement(): PDOStatement
+    public function getPdoStatement(): ?PDOStatement
     {
         return $this->_statement;
     }
@@ -557,8 +571,9 @@ class DbCommand
         if (!empty($query['having']))
             $sql .= "\nHAVING " . $query['having'];
 
-        if (!empty($query['union']))
-            $sql .= "\nUNION (\n" . (is_array($query['union']) ? implode("\n) UNION (\n", $query['union']) : $query['union']) . ')';
+        if (!empty($query['union'])) {
+            $sql = $this->_connection->getCommandBuilder()->applyUnion($sql, $query['union']);
+        }
 
         if (!empty($query['order']))
             $sql .= "\nORDER BY " . $query['order'];
