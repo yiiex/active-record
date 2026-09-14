@@ -7,7 +7,19 @@ on:
         branches: [master]
 
 jobs:
-    tests:
+    unit-tests:
+        name: Unit Tests
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+            - uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.4'
+                  extensions: zip
+            - run: composer install --no-interaction --prefer-dist --no-progress
+            - run: vendor/bin/phpunit --testsuite "Unit Tests"
+
+    driver-tests:
         name: PHP ${{ matrix.php }} - ${{ matrix.db }}
         runs-on: ubuntu-latest
 
