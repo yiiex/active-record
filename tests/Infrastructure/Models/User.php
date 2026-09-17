@@ -27,8 +27,11 @@ class User extends ActiveRecord
     public function relations(): array
     {
         return [
-            'posts' => [self::HAS_MANY, Post::class, 'user_id'],
-            'comments' => [self::HAS_MANY, Comment::class, 'user_id'],
+            'posts' => [self::HAS_MANY, Post::class, 'author_id'],
+            'comments' => [self::HAS_MANY, Comment::class, 'author_id'],
+            'profile' => [self::HAS_ONE, Profile::class, 'user_id'],
+            'commentCount' => [self::STAT, Comment::class, 'author_id'],
+            'postCount' => [self::STAT, Post::class, 'author_id'],
         ];
     }
 }

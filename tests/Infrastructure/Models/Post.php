@@ -26,8 +26,10 @@ class Post extends ActiveRecord
     public function relations(): array
     {
         return [
-            'author' => [self::BELONGS_TO, User::class, 'user_id'],
+            'author' => [self::BELONGS_TO, User::class, 'author_id'],
             'comments' => [self::HAS_MANY, Comment::class, 'post_id'],
+            'categories' => [self::MANY_MANY, Category::class, 'post_category(post_id, category_id)'],
+            'commentCount' => [self::STAT, Comment::class, 'post_id'],
         ];
     }
 }

@@ -26,7 +26,8 @@ class Comment extends ActiveRecord
     {
         return [
             'post' => [self::BELONGS_TO, Post::class, 'post_id'],
-            'author' => [self::BELONGS_TO, User::class, 'user_id'],
+            'author' => [self::BELONGS_TO, User::class, 'author_id'],
+            'postAuthor' => [self::BELONGS_TO, User::class, ['author_id' => 'id'], 'through' => 'post'],
         ];
     }
 }
