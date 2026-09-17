@@ -436,7 +436,7 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
             'select' => 'username, password',
             'from' => 'users',
             'where' => 'email = :email',
-            'params' => [':email' => 'email2'],
+            'params' => [':email' => 'user2@example.com'],
             'order' => 'username DESC',
         ]);
 

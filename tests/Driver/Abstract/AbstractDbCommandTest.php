@@ -451,25 +451,4 @@ abstract class AbstractDbCommandTest extends AbstractDatabaseTest
 
         $this->assertEquals([1, 2], $column);
     }
-
-    public function testArraySyntax(): void
-    {
-        $command = $this->connection->createCommand([
-            'select' => 'username, password',
-            'from' => 'users',
-            'where' => 'email = :email',
-            'params' => [':email' => 'email2'],
-            'order' => 'username DESC',
-        ]);
-
-        $row = $command->queryRow();
-
-        $this->assertSame('user2', $row['username']);
-        $this->assertSame('pass2', $row['password']);
-    }
 }
-
-/**
- * Helper class for PDO::FETCH_CLASS tests.
- * Properties are declared explicitly to avoid dynamic properties (deprecated since PHP 8.2).
- */
