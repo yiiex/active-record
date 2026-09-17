@@ -40,6 +40,11 @@ final class ORMContext
         self::$profile = $profile;
     }
 
+    public static function isBootstrapped(): bool
+    {
+        return (bool)self::$container;
+    }
+
     public static function isDebug(): bool
     {
         return self::$debug;

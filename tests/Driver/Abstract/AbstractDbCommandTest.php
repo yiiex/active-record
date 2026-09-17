@@ -6,37 +6,12 @@ namespace Yii1x\ActiveRecord\Tests\Driver\Abstract;
 
 use PDO;
 use PDOStatement;
-use Yii1x\ActiveRecord\Db\DbConnection;
 use Yii1x\ActiveRecord\Db\DbDataReader;
-use Yii1x\ActiveRecord\ORMContext;
 use Yii1x\ActiveRecord\Tests\Infrastructure\TestFetchClass;
 use Yii1x\ActiveRecord\Exceptions\DbException;
 
 abstract class AbstractDbCommandTest extends AbstractDatabaseTest
 {
-    protected DbConnection $connection;
-
-    abstract protected function driverName(): string;
-
-    protected function setUp(): void
-    {
-        ORMContext::bootstrap($this->container, debug: false);
-        $this->connection = $this->databaseFactory($this->driverName());
-        $this->populateDatabase($this->connection);
-        $this->connection->beginTransaction();
-    }
-
-    protected function tearDown(): void
-    {
-        if ($this->connection && $this->connection->getActive()) {
-            $transaction = $this->connection->getCurrentTransaction();
-            if ($transaction && $transaction->getActive()) {
-                $transaction->rollback();
-            }
-            $this->connection->setActive(false);
-        }
-    }
-
     // ---------------------------------------------------------------
     //  Text & connection
     // ---------------------------------------------------------------

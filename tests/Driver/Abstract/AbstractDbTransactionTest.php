@@ -4,31 +4,9 @@ declare(strict_types=1);
 
 namespace Yii1x\ActiveRecord\Tests\Driver\Abstract;
 
-use Yii1x\ActiveRecord\Db\DbConnection;
-
 abstract class AbstractDbTransactionTest extends AbstractDatabaseTest
 {
-    protected DbConnection $connection;
-
-    abstract protected function driverName(): string;
-
-    protected function setUp(): void
-    {
-        $this->connection = $this->databaseFactory($this->driverName());
-        $this->populateDatabase($this->connection);
-    }
-
-    protected function tearDown(): void
-    {
-        if ($this->connection && $this->connection->getActive()) {
-            // Rollback any active transaction
-            $transaction = $this->connection->getCurrentTransaction();
-            if ($transaction && $transaction->getActive()) {
-                $transaction->rollback();
-            }
-            $this->connection->setActive(false);
-        }
-    }
+    protected bool $useTransaction = false;
 
     public function testBeginTransaction(): void
     {

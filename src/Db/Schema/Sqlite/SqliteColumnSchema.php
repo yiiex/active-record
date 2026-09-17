@@ -26,7 +26,7 @@ class SqliteColumnSchema extends DbColumnSchema
      * The value is typecasted to correct PHP type.
      * @param mixed $defaultValue the default value obtained from metadata
      */
-    protected function extractDefault($defaultValue)
+    protected function extractDefault(mixed $defaultValue): void
     {
         if ($this->dbType === 'timestamp' && $defaultValue === 'CURRENT_TIMESTAMP')
             $this->defaultValue = null;

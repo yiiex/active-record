@@ -5,12 +5,33 @@ namespace Yii1x\ActiveRecord\Tests\Driver\Abstract;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Yii1x\ActiveRecord\Db\DbConnection;
+use Yii1x\ActiveRecord\ORMContext;
 use Yii1x\ActiveRecord\Tests\Infrastructure\TestContainer;
 
 abstract class AbstractDatabaseTest extends TestCase
 {
     protected ContainerInterface $container {
         get => $this->container ??= new TestContainer();
+    }
+
+    protected DbConnection $connection;
+
+    abstract protected function driverName(): string;
+
+    protected function setUp(): void
+    {
+        if (!ORMContext::isBootstrapped()) {
+            ORMContext::bootstrap($this->container);
+        }
+        $this->connection = $this->databaseFactory($this->driverName());
+        $this->populateDatabase($this->connection);
+    }
+
+    protected function tearDown(): void
+    {
+        if ($this->connection && $this->connection->getActive()) {
+            $this->connection->setActive(false);
+        }
     }
 
     protected function databaseFactory(string $name, bool $autoConnect = true): DbConnection
@@ -51,4 +72,5 @@ abstract class AbstractDatabaseTest extends TestCase
         $sql = file_get_contents($schemaFile);
         $pdo->exec($sql);
     }
+
 }

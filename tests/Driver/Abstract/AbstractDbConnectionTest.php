@@ -9,27 +9,6 @@ use Yii1x\ActiveRecord\Db\DbConnection;
 
 abstract class AbstractDbConnectionTest extends AbstractDatabaseTest
 {
-    protected DbConnection $connection;
-
-    abstract protected function driverName(): string;
-
-    protected function setUp(): void
-    {
-        $this->connection = $this->databaseFactory($this->driverName());
-        $this->populateDatabase($this->connection);
-        $this->connection->beginTransaction();
-    }
-
-    protected function tearDown(): void
-    {
-        if ($this->connection && $this->connection->getActive()) {
-            if ($this->connection->getCurrentTransaction()) {
-                $this->connection->getCurrentTransaction()->rollback();
-            }
-            $this->connection->setActive(false);
-        }
-    }
-
     public function testAutoConnectEnabledByDefault(): void
     {
         $connection = $this->databaseFactory($this->driverName());
