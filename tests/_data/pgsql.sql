@@ -104,9 +104,9 @@ CREATE TABLE types
 );
 
 -- Фикстуры (идентичные MySQL)
-INSERT INTO users (username, password, email) VALUES ('user1', 'pass1', 'email1');
-INSERT INTO users (username, password, email) VALUES ('user2', 'pass2', 'email2');
-INSERT INTO users (username, password, email) VALUES ('user3', 'pass3', 'email3');
+INSERT INTO users (username, password, email) VALUES ('user1', 'pass1', 'user1@example.com');
+INSERT INTO users (username, password, email) VALUES ('user2', 'pass2', 'user2@example.com');
+INSERT INTO users (username, password, email) VALUES ('user3', 'pass3', 'user3@example.com');
 
 INSERT INTO profiles (first_name, last_name, user_id) VALUES ('first 1', 'last 1', 1);
 INSERT INTO profiles (first_name, last_name, user_id) VALUES ('first 2', 'last 2', 2);
