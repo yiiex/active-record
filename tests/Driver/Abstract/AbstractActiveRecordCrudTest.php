@@ -345,4 +345,160 @@ abstract class AbstractActiveRecordCrudTest extends AbstractDatabaseTest
 
         $this->assertFalse($user1->equals($user2));
     }
+
+    // ===== BULK OPERATIONS =====
+
+    public function testSaveAttributes(): void
+    {
+        $user = User::model()->findByPk(1);
+        $this->assertNotNull($user);
+
+        $result = $user->saveAttributes(['username' => 'updated_via_saveAttributes']);
+
+        $this->assertTrue($result);
+
+        $found = User::model()->findByPk(1);
+        $this->assertEquals('updated_via_saveAttributes', $found->username);
+    }
+
+    public function testUpdateCounters(): void
+    {
+        $post = Post::model()->findByPk(1);
+        $this->assertNotNull($post);
+        $this->assertEquals(0, $post->view_count);
+
+        // Increment view_count by 1
+        $result = Post::model()->updateCounters(['view_count' => 1], 'id = 1');
+
+        $this->assertEquals(1, $result);
+
+        $updated = Post::model()->findByPk(1);
+        $this->assertEquals(1, $updated->view_count);
+
+        // Increment again
+        Post::model()->updateCounters(['view_count' => 5], 'id = 1');
+        $updated = Post::model()->findByPk(1);
+        $this->assertEquals(6, $updated->view_count);
+    }
+
+    public function testUpdateByPk(): void
+    {
+        $result = User::model()->updateByPk(
+            1,
+            ['username' => 'updated_by_pk'],
+            'id > 0'
+        );
+
+        $this->assertEquals(1, $result);
+
+        $user = User::model()->findByPk(1);
+        $this->assertEquals('updated_by_pk', $user->username);
+    }
+
+    public function testUpdateByPkArray(): void
+    {
+        $result = User::model()->updateByPk([1, 2], ['email' => 'bulk@example.com']);
+
+        $this->assertEquals(2, $result);
+
+        $user1 = User::model()->findByPk(1);
+        $user2 = User::model()->findByPk(2);
+        $this->assertEquals('bulk@example.com', $user1->email);
+        $this->assertEquals('bulk@example.com', $user2->email);
+    }
+
+    public function testUpdateAll(): void
+    {
+        $result = User::model()->updateAll(
+            ['password' => 'new_password'],
+            'username LIKE :pattern',
+            [':pattern' => 'user%']
+        );
+
+        $this->assertGreaterThan(0, $result);
+
+        $users = User::model()->findAll('username LIKE :pattern', [':pattern' => 'user%']);
+        foreach ($users as $user) {
+            $this->assertEquals('new_password', $user->password);
+        }
+    }
+
+    public function testDeleteByPk(): void
+    {
+        $user = new User();
+        $user->username = 'to_delete_pk';
+        $user->email = 'delete_pk@example.com';
+        $user->password = 'password';
+        $user->save();
+
+        $id = $user->id;
+        $result = User::model()->deleteByPk($id);
+
+        $this->assertEquals(1, $result);
+        $this->assertNull(User::model()->findByPk($id));
+    }
+
+    public function testDeleteByPkArray(): void
+    {
+        $user1 = new User();
+        $user1->username = 'delete1';
+        $user1->email = 'delete1@example.com';
+        $user1->password = 'password';
+        $user1->save();
+
+        $user2 = new User();
+        $user2->username = 'delete2';
+        $user2->email = 'delete2@example.com';
+        $user2->password = 'password';
+        $user2->save();
+
+        $result = User::model()->deleteByPk([$user1->id, $user2->id]);
+
+        $this->assertEquals(2, $result);
+        $this->assertNull(User::model()->findByPk($user1->id));
+        $this->assertNull(User::model()->findByPk($user2->id));
+    }
+
+    public function testDeleteAll(): void
+    {
+        for ($i = 1; $i <= 3; $i++) {
+            $user = new User();
+            $user->username = "delete_all_$i";
+            $user->email = "delete_all_$i@example.com";
+            $user->password = 'password';
+            $user->save();
+        }
+
+        $result = User::model()->deleteAll(
+            'username LIKE :pattern',
+            [':pattern' => 'delete_all_%']
+        );
+
+        $this->assertEquals(3, $result);
+
+        $count = User::model()->count('username LIKE :pattern', [':pattern' => 'delete_all_%']);
+        $this->assertEquals(0, $count);
+    }
+
+    public function testDeleteAllByAttributes(): void
+    {
+        $user1 = new User();
+        $user1->username = 'same_email';
+        $user1->email = 'same@example.com';
+        $user1->password = 'password';
+        $user1->save(false);
+
+        $user2 = new User();
+        $user2->username = 'same_email2';
+        $user2->email = 'same@example.com';
+        $user2->password = 'password';
+        $user2->save(false);
+
+        $result = User::model()->deleteAllByAttributes(['email' => 'same@example.com']);
+
+        $this->assertEquals(2, $result);
+
+        $count = User::model()->count('email = :email', [':email' => 'same@example.com']);
+        $this->assertEquals(0, $count);
+    }
 }

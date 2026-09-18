@@ -9,6 +9,7 @@ class PostRecord
     public ?string $content = null;
     public ?string $create_time = null;
     public int|string $author_id;
+    public int $view_count = 0;
 
     public function __construct(public ?string $param1, public ?string $param2)
     {

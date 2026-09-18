@@ -109,19 +109,20 @@ abstract class AbstractDbSchemaTest extends AbstractDatabaseTest
     public function testTableColumns(): void
     {
         $table = $this->schema->getTable('posts');
-        $this->assertCount(5, $table->columns);
+        $this->assertCount(6, $table->columns);
         $this->assertArrayHasKey('id', $table->columns);
         $this->assertArrayHasKey('title', $table->columns);
         $this->assertArrayHasKey('create_time', $table->columns);
         $this->assertArrayHasKey('author_id', $table->columns);
         $this->assertArrayHasKey('content', $table->columns);
+        $this->assertArrayHasKey('view_count', $table->columns);
     }
 
     public function testTableColumnNames(): void
     {
         $table = $this->schema->getTable('posts');
         $columnNames = $table->getColumnNames();
-        $this->assertEquals(['id', 'title', 'create_time', 'author_id', 'content'], $columnNames);
+        $this->assertEquals(['id', 'title', 'create_time', 'author_id', 'content', 'view_count'], $columnNames);
     }
 
     public function testTableGetColumn(): void
