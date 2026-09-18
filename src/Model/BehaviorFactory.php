@@ -27,8 +27,14 @@ class BehaviorFactory
     /**
      * Метод для создания только из конфигурации
      */
-    public static function fromConfig(array $config): object
+    public static function fromConfig(array|string $config): object
     {
+        if (is_string($config)) {
+            if (!class_exists($config)) {
+                throw new InvalidArgumentException("Class '{$config}' does not exist");
+            }
+            $config = ['class' => $config];
+        }
         if (!isset($config['class'])) {
             throw new InvalidArgumentException('Configuration must contain "class" key');
         }
