@@ -60,6 +60,7 @@ abstract class ActiveRecord extends Model
      * @see getDbConnection
      */
     public static ?DbConnection $db = null;
+    protected ?DbConnection $_connection = null;
 
     private static array $_models = [];            // class name => model
     private static array $_md = [];                // class name => meta data
@@ -637,16 +638,21 @@ abstract class ActiveRecord extends Model
      */
     public function getDbConnection(): DbConnection
     {
-        if (self::$db !== null)
+        if (self::$db !== null) {
             return self::$db;
-        else {
-            self::$db = ORMContext::db($this->databaseName());
-            if (self::$db instanceof DbConnection)
-                return self::$db;
-            else {
-                throw new DbException('Active Record requires a "db" CDbConnection application component.');
-            }
         }
+
+        $model = static::model();
+        if ($model->_connection !== null) {
+            return $model->_connection;
+        }
+
+        $connection = ORMContext::db($this->databaseName());
+        if (!$connection instanceof DbConnection) {
+            throw new DbException('Active Record requires a "db" CDbConnection application component.');
+        }
+
+        return $model->_connection = $connection;
     }
 
     /**
