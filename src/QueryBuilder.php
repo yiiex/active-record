@@ -136,7 +136,7 @@ class QueryBuilder
         return $this;
     }
 
-    public function whereRelation(string $relation, ?\Closure $callback = null, string $operator = 'AND', string $relAlias = null): static
+    public function whereRelation(string $relation, ?\Closure $callback = null, string $operator = 'AND', ?string $relAlias = null): static
     {
         $this->conditionBuilder->whereRelation($relation, $callback, $operator, $relAlias);
         return $this;

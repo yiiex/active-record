@@ -128,6 +128,9 @@ class ConditionBuilder
         if (!$rel = $this->model->getActiveRelation($relation)) {
             throw new DbException('Relation "' . $relation . '" does not exist.');
         }
+
+        $schema = $this->model->getDbConnection()->getSchema();
+
         if ($rel->through) {
             if (!$throughRel = $this->model->getActiveRelation($rel->through)) {
                 throw new DbException('Relation "' . $rel->through . '" does not exist.');
@@ -136,23 +139,36 @@ class ConditionBuilder
             $modelAlias = $rel->through;
         } else {
             $model = $this->model;
-            $modelAlias = $this->criteria->alias;
+            $modelAlias = $this->criteria->alias ?: $this->model->getTableAlias(false, false);
         }
-        $relAlias ??= $relation;
+
         $relModel = ActiveRecord::model($rel->className);
+        if (is_array($relModel->getTableSchema()->primaryKey) || is_array($model->getTableSchema()->primaryKey)) {
+            throw new DbException("Relation '{$relation}' has a composite key and cannot be used in whereRelation().");
+        }
+
+        $relAlias ??= $relation;
+        $relAliasQuoted = $schema->quoteTableName($relAlias);
+        $modelAliasQuoted = $schema->quoteTableName($modelAlias);
+
         $queryBuilder = new QueryBuilder($relModel, new DbCriteria(['select' => '1', 'alias' => $relAlias]));
+
+        if ($rel->condition !== '') {
+            $queryBuilder->whereRaw($rel->condition, $rel->params);
+        }
         if ($callback) {
             $queryBuilder->where($callback);
         }
+
         if ($rel instanceof ManyManyRelation) {
             if ($rel->through) {
                 throw new DbException('MANY_MANY relation "' . $relation . '" does not support through.');
             }
-            $junctionAlias = $relAlias.'_j';
+            $junctionAliasQuoted = $schema->quoteTableName($relAlias . '_j');
             $keys = $rel->getJunctionForeignKeys();
-            $condition = "{$relAlias}.{$relModel->getTableSchema()->primaryKey} = {$junctionAlias}.{$keys[1]}";
-            $queryBuilder->innerJoin($rel->getJunctionTableName(), $condition, $junctionAlias);
-            $queryBuilder->whereRaw("{$junctionAlias}.{$keys[0]} = {$modelAlias}.{$model->getTableSchema()->primaryKey}");
+            $condition = "{$relAliasQuoted}.{$relModel->getTableSchema()->primaryKey} = {$junctionAliasQuoted}.{$keys[1]}";
+            $queryBuilder->innerJoin($rel->getJunctionTableName(), $condition, $junctionAliasQuoted);
+            $queryBuilder->whereRaw("{$junctionAliasQuoted}.{$keys[0]} = {$modelAliasQuoted}.{$model->getTableSchema()->primaryKey}");
         } else {
             if ($rel instanceof BelongsToRelation) {
                 $fkMap = is_string($rel->foreignKey) ? [$rel->foreignKey => $model->getTableSchema()->primaryKey] : $rel->foreignKey;
@@ -164,18 +180,32 @@ class ConditionBuilder
                 if (is_array($pk) || is_array($fk)) {
                     throw new DbException("Relation '{$relation}' has composite key. " . "Define all fields explicitly in foreignKey array.");
                 }
-                $queryBuilder->whereRaw("{$relAlias}.{$fk} = {$modelAlias}.{$pk}");
+                $queryBuilder->whereRaw("{$relAliasQuoted}.{$fk} = {$modelAliasQuoted}.{$pk}");
             }
         }
-        $relModel->tableAlias = $relAlias;
-        $relModel->applyScopes($queryBuilder->criteria);
-        $cmd = $relModel->commandBuilder->createFindCommand($relModel->tableName(), $queryBuilder->criteria, $relAlias);
+
+        $oldAlias = $relModel->getTableAlias(false, false);
+        $relModel->setTableAlias($relAlias);
+        try {
+            $relModel->applyScopes($queryBuilder->criteria);
+
+            // Build the correlated sub-query text without binding parameters:
+            // binding would prepare the sub-query in isolation, which fails for
+            // correlated references to the outer table.
+            $params = $queryBuilder->criteria->params;
+            $queryBuilder->criteria->params = [];
+            $cmd = $relModel->commandBuilder->createFindCommand($relModel->tableName(), $queryBuilder->criteria, $relAlias);
+            $queryBuilder->criteria->params = $params;
+        } finally {
+            $relModel->setTableAlias($oldAlias);
+        }
+
         if ($rel->through) {
             $this->whereRelation($rel->through, fn(ConditionBuilder $builder) => $builder->whereRaw('EXISTS(' . $cmd->getText() . ')'));
         } else {
             $this->whereRaw('EXISTS(' . $cmd->getText() . ')', operator: $operator);
         }
-        $this->criteria->params += $queryBuilder->criteria->params;
+        $this->criteria->params += $params;
         return $this;
     }
 

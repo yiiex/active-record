@@ -28,7 +28,9 @@ class Post extends ActiveRecord
         return [
             'author' => [self::BELONGS_TO, User::class, 'author_id'],
             'comments' => [self::HAS_MANY, Comment::class, 'post_id'],
+            'old_comments' => [self::HAS_MANY, Comment::class, 'post_id', 'condition' => 'old_comments.id > 5'],
             'categories' => [self::MANY_MANY, Category::class, 'post_category(post_id, category_id)'],
+            'categoriesThrough' => [self::MANY_MANY, Category::class, 'post_category(post_id, category_id)', 'through' => 'author'],
             'commentCount' => [self::STAT, Comment::class, 'post_id'],
         ];
     }
