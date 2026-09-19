@@ -7,6 +7,7 @@ use Yii1x\ActiveRecord\Contracts\MigrationManagerInterface;
 use Yii1x\ActiveRecord\Contracts\PreMigrationInterface;
 use Yii1x\ActiveRecord\Db\DbConnection;
 use Yii1x\ActiveRecord\Exceptions\DbException;
+use Yii1x\ActiveRecord\Exceptions\MigrationException;
 use Yii1x\ActiveRecord\ORMContext;
 
 class MigrationManager implements MigrationManagerInterface
@@ -24,6 +25,13 @@ class MigrationManager implements MigrationManagerInterface
 
     public function create(string $name): ?PreMigrationInterface
     {
+        if (!preg_match('/^\w+$/', $name)) {
+            throw new \InvalidArgumentException('Migration name must contain only letters, digits and underscore characters.');
+        }
+        if (!is_dir($this->migrationPath)) {
+            throw new \InvalidArgumentException(sprintf('Migration directory "%s" does not exist.', $this->migrationPath));
+        }
+
         $name = 'm' . gmdate('ymd_His') . '_' . $name;
         if (!$content = file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . 'stubs' . DIRECTORY_SEPARATOR . 'migration.stub')) {
             throw new \Exception('Unable to locate migration stub file');
@@ -50,16 +58,19 @@ class MigrationManager implements MigrationManagerInterface
 
     protected function downMigration($preMigration): void
     {
-        if ($preMigration->down()) {
-            $db = $this->getDbConnection();
-            $db->createCommand()
-                ->delete($this->tableName, $db->quoteColumnName('version') . '=:version', [
-                    ':version' => $preMigration->getName(),
-                ]);
-            $preMigration->setStatus(PreMigrationInterface::STATUS_REVERTED);
-        } else {
+        try {
+            $preMigration->down();
+        } catch (\Throwable $e) {
             $preMigration->setStatus(PreMigrationInterface::STATUS_FAILED);
+            throw $e instanceof MigrationException ? $e : MigrationException::forMigration($preMigration->getName(), $e);
         }
+
+        $db = $this->getDbConnection();
+        $db->createCommand()
+            ->delete($this->tableName, $db->quoteColumnName('version') . '=:version', [
+                ':version' => $preMigration->getName(),
+            ]);
+        $preMigration->setStatus(PreMigrationInterface::STATUS_REVERTED);
     }
 
     public function up(?int $step = null): array
@@ -73,15 +84,18 @@ class MigrationManager implements MigrationManagerInterface
 
     protected function upMigration($preMigration): void
     {
-        if ($preMigration->up()) {
-            $this->getDbConnection()->createCommand()->insert($this->tableName, [
-                'version' => $preMigration->getName(),
-                'apply_time' => time(),
-            ]);
-            $preMigration->setStatus(PreMigrationInterface::STATUS_APPLIED);
-        } else {
+        try {
+            $preMigration->up();
+        } catch (\Throwable $e) {
             $preMigration->setStatus(PreMigrationInterface::STATUS_FAILED);
+            throw $e instanceof MigrationException ? $e : MigrationException::forMigration($preMigration->getName(), $e);
         }
+
+        $this->getDbConnection()->createCommand()->insert($this->tableName, [
+            'version' => $preMigration->getName(),
+            'apply_time' => time(),
+        ]);
+        $preMigration->setStatus(PreMigrationInterface::STATUS_APPLIED);
     }
 
     public function redo(?int $step = null): array
@@ -134,6 +148,11 @@ class MigrationManager implements MigrationManagerInterface
         $applied = [];
         foreach ($this->migrationHistory(-1) as $pre)
             $applied[substr($pre->getName(), 1, 13)] = true;
+
+        if (!is_dir($this->migrationPath)) {
+            throw new \InvalidArgumentException(sprintf('Migration directory "%s" does not exist.', $this->migrationPath));
+        }
+
         $migrations = [];
         $handle = opendir($this->migrationPath);
         while (($file = readdir($handle)) !== false) {
@@ -148,7 +167,7 @@ class MigrationManager implements MigrationManagerInterface
                 );
         }
         closedir($handle);
-        sort($migrations);
+        usort($migrations, static fn(PreMigrationInterface $a, PreMigrationInterface $b): int => strcmp($a->getName(), $b->getName()));
         if ($step !== null && $step > 0) {
             $migrations = array_slice($migrations, 0, $step);
         }

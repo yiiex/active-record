@@ -5,6 +5,7 @@ namespace Yii1x\ActiveRecord\Migration;
 use Yii1x\ActiveRecord\Contracts\MigrationManagerInterface;
 use Yii1x\ActiveRecord\Contracts\PreMigrationInterface;
 use Yii1x\ActiveRecord\Db\DbMigration;
+use Yii1x\ActiveRecord\Exceptions\MigrationException;
 
 class PreMigration implements PreMigrationInterface
 {
@@ -50,12 +51,30 @@ class PreMigration implements PreMigrationInterface
 
     public function up(): bool
     {
-        return !!$this->captureDebug(fn() => $this->getMigration()->up());
+        $migration = $this->getMigration();
+        if ($migration === null) {
+            throw new MigrationException($this->name, sprintf('Migration "%s" could not be loaded.', $this->name));
+        }
+
+        try {
+            return !!$this->captureDebug(fn() => $migration->up());
+        } catch (\Throwable $e) {
+            throw MigrationException::forMigration($this->name, $e);
+        }
     }
 
     public function down(): bool
     {
-        return !!$this->captureDebug(fn() => $this->getMigration()->down());
+        $migration = $this->getMigration();
+        if ($migration === null) {
+            throw new MigrationException($this->name, sprintf('Migration "%s" could not be loaded.', $this->name));
+        }
+
+        try {
+            return !!$this->captureDebug(fn() => $migration->down());
+        } catch (\Throwable $e) {
+            throw MigrationException::forMigration($this->name, $e);
+        }
     }
 
     public function getDebug(): array
@@ -85,19 +104,20 @@ class PreMigration implements PreMigrationInterface
     {
         $start = microtime(true);
         ob_start();
-        $result = $callback();
-        $output = ob_get_clean();
-        $this->executionTime = microtime(true) - $start;
+        try {
+            return $callback();
+        } finally {
+            $output = ob_get_clean();
+            $this->executionTime = microtime(true) - $start;
 
-        if (!empty($output)) {
-            foreach (explode("\n", trim($output)) as $line) {
-                if ($line = trim($line)) {
-                    $this->debug[] = $line;
+            if (!empty($output)) {
+                foreach (explode("\n", trim($output)) as $line) {
+                    if ($line = trim($line)) {
+                        $this->debug[] = $line;
+                    }
                 }
             }
         }
-
-        return $result;
     }
 
     protected function getMigration(): ?DbMigration

@@ -11,6 +11,7 @@ use Symfony\Component\Console\Input\{InputArgument, InputInterface, InputOption}
 use Symfony\Component\Console\Output\OutputInterface;
 use Yii1x\ActiveRecord\Contracts\MigrationManagerInterface;
 use Yii1x\ActiveRecord\Contracts\PreMigrationInterface;
+use Yii1x\ActiveRecord\Exceptions\MigrationException;
 
 #[AsCommand(
     name: 'migrate',
@@ -75,15 +76,22 @@ final class MigrateCommand extends Command
                 return Command::INVALID;
             }
         }
-        return match ($action) {
-            'up' => $this->actionUp($limit, $output, $debug),
-            'down' => $this->actionDown($limit, $output, $debug),
-            'redo' => $this->actionRedo($limit, $output, $debug),
-            'make' => $this->actionMake($name, $output),
-            'new' => $this->actionNew($limit, $output),
-            'history' => $this->actionHistory($limit, $output),
-            default => $this->invalidAction($action, $output),
-        };
+        try {
+            return match ($action) {
+                'up' => $this->actionUp($limit, $output, $debug),
+                'down' => $this->actionDown($limit, $output, $debug),
+                'redo' => $this->actionRedo($limit, $output, $debug),
+                'make' => $this->actionMake($name, $output),
+                'new' => $this->actionNew($limit, $output),
+                'history' => $this->actionHistory($limit, $output),
+                default => $this->invalidAction($action, $output),
+            };
+        } catch (MigrationException $e) {
+            $output->writeln('');
+            $output->writeln('<fg=red>❌ ' . $e->getMessage() . '</>');
+            $output->writeln('');
+            return Command::FAILURE;
+        }
     }
 
     protected function actionMake(?string $name, OutputInterface $output): int
@@ -141,7 +149,7 @@ final class MigrateCommand extends Command
     protected function actionDown(?int $limit, OutputInterface $output, bool $debug = false): int
     {
         $output->writeln('');
-        $output->writeln(sprintf("<options=bold;fg=magenta>🔄 Redoing %d applied migration(s)...</>", $limit ?: 1));
+        $output->writeln(sprintf("<options=bold;fg=magenta>🔄 Reverting %d applied migration(s)...</>", $limit ?: 1));
         $output->writeln('');
 
         $migrations = [];
@@ -290,7 +298,7 @@ final class MigrateCommand extends Command
 
     private function invalidAction(string $action, OutputInterface $output): int
     {
-        $output->writeln("<error>Invalid action '{$action}'. Use 'up' or 'down'.</error>");
+        $output->writeln("<error>Invalid action '{$action}'. Use one of: up, down, redo, make, new, history.</error>");
         return Command::FAILURE;
     }
 }

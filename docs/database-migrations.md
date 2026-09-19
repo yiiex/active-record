@@ -62,6 +62,9 @@ php console migrate up -d
 | `--name` | | Migration name (for make) |
 | `--debug` | `-d` | Show detailed SQL output |
 
+> **Note:** the migration name passed to `make --name=...` (and to `MigrationManager::create()`)
+> must contain only letters, digits and underscore characters (`[A-Za-z0-9_]+`).
+
 ## MigrationManager Interface
 
 ```php
