@@ -150,3 +150,10 @@ Tests run automatically on GitHub Actions for every push and pull request. See f
 Works with any **PSR-11 container** (as shown in the Yii 3 example above).
 
 No Yii framework required. No global state. Just Active Record.
+
+## License
+
+Released under the [BSD-3-Clause License](LICENSE).
+
+Based on [Yii 1.1](https://github.com/yiisoft/yii) by Yii Software LLC
+(BSD-3-Clause); portions copyright (c) 2025 Galtsev Timofey.
