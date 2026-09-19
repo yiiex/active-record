@@ -12,9 +12,11 @@ class TestContainer implements ContainerInterface
 {
     private array $services = [];
 
-    public function __construct()
+    public function __construct(bool $withLogger = true)
     {
-        $this->set(LoggerInterface::class, new NullLogger());
+        if ($withLogger) {
+            $this->set(LoggerInterface::class, new NullLogger());
+        }
     }
 
     public function set($id, $value): static

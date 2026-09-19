@@ -68,19 +68,44 @@ final class ORMContext
         return self::container()->get($name);
     }
 
-    public static function cache(): ?CacheInterface
+    /**
+     * Resolves a cache service.
+     *
+     * Returns null when the cache is optional and not configured, so callers can
+     * transparently fall back to uncached behaviour.
+     *
+     * @param string|null $id service id, defaults to {@see CacheInterface::class}
+     */
+    public static function cache(?string $id = null): ?CacheInterface
     {
-        return self::container()->get(CacheInterface::class);
+        $id ??= CacheInterface::class;
+        $container = self::container();
+
+        if (!$container->has($id)) {
+            return null;
+        }
+
+        $cache = $container->get($id);
+        if (!$cache instanceof CacheInterface) {
+            throw new \RuntimeException(sprintf('Service "%s" must implement %s.', $id, CacheInterface::class));
+        }
+
+        return $cache;
     }
 
     public static function log(): ?LoggerInterface
     {
-        return self::container()->get(LoggerInterface::class);
+        $container = self::container();
+
+        return $container->has(LoggerInterface::class) ? $container->get(LoggerInterface::class) : null;
     }
 
     public static function dispatch(object $event): void
     {
-        $eventDispatcher = self::container()->get(EventDispatcherInterface::class);
-        $eventDispatcher->dispatch($event);
+        $container = self::container();
+
+        if ($container->has(EventDispatcherInterface::class)) {
+            $container->get(EventDispatcherInterface::class)->dispatch($event);
+        }
     }
 }

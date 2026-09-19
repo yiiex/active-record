@@ -89,7 +89,7 @@ abstract class DbSchema
                 $this->_connection->queryCachingDuration = 0;
             }
 
-            if (!isset($this->_cacheExclude[$name]) && ($duration = $this->_connection->schemaCachingDuration) > 0 && $cache = ORMContext::cache()) {
+            if (!isset($this->_cacheExclude[$name]) && ($duration = $this->_connection->schemaCachingDuration) > 0 && $this->_connection->schemaCacheID !== null && $cache = ORMContext::cache($this->_connection->schemaCacheID)) {
                 $key = $this->getTableCacheKey($name);
                 $table = $cache->get($key);
                 if ($refresh === true || $table === null) {
@@ -162,7 +162,7 @@ abstract class DbSchema
      */
     public function refresh(): void
     {
-        if ($this->_connection->schemaCachingDuration > 0 && $cache = ORMContext::cache()) {
+        if ($this->_connection->schemaCachingDuration > 0 && $this->_connection->schemaCacheID !== null && $cache = ORMContext::cache($this->_connection->schemaCacheID)) {
             foreach (array_keys($this->_tables) as $name) {
                 if (!isset($this->_cacheExclude[$name])) {
                     $cache->delete($this->getTableCacheKey($name));

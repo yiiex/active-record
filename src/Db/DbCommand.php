@@ -230,7 +230,7 @@ class DbCommand
                 $this->_statement = $this->getConnection()->getPdoInstance()->prepare($this->getText());
                 $this->_paramLog = [];
             } catch (Exception $e) {
-                ORMContext::log()->error('Error in preparing SQL: ' . $this->getText());
+                ORMContext::log()?->error('Error in preparing SQL: ' . $this->getText());
                 $errorInfo = $e instanceof PDOException ? $e->errorInfo : null;
                 throw new DbException(sprintf('DbCommand failed to prepare the SQL statement: %s', $e->getMessage()), (int)$e->getCode(), $errorInfo);
             }
@@ -350,7 +350,7 @@ class DbCommand
         } catch (Exception $e) {
             $errorInfo = $e instanceof PDOException ? $e->errorInfo : null;
             $message = $e->getMessage();
-            ORMContext::log()->error(
+            ORMContext::log()?->error(
                 'DbCommand::execute() failed: {message}. The SQL statement executed was: {sql}.', [
                 'message' => $message,
                 'sql' => $this->getText() . $par
@@ -484,8 +484,8 @@ class DbCommand
 
         if ($this->_connection->queryCachingCount > 0 && $method !== ''
             && $this->_connection->queryCachingDuration > 0
-            && $this->_connection->queryCacheID !== false
-            && ($cache = ORMContext::cache()) !== null) {
+            && $this->_connection->queryCacheID !== null
+            && ($cache = ORMContext::cache($this->_connection->queryCacheID)) !== null) {
             $this->_connection->queryCachingCount--;
             $cacheKey = 'yii#dbquery#' . md5(
                     $method . '#' .
@@ -525,7 +525,7 @@ class DbCommand
         } catch (Exception $e) {
             $errorInfo = $e instanceof PDOException ? $e->errorInfo : null;
             $message = $e->getMessage();
-            ORMContext::log()->error('CDbCommand::{method}() failed: {error}. The SQL statement executed was: {sql}.', [
+            ORMContext::log()?->error('CDbCommand::{method}() failed: {error}. The SQL statement executed was: {sql}.', [
                 '{method}' => $method,
                 '{error}' => $message,
                 '{sql}' => $this->getText() . $par,
