@@ -166,33 +166,26 @@ class DbConnection
      */
     public array $schemaCachingExclude = array();
     /**
-     * @var string the ID of the cache application component that is used to cache the table metadata.
-     * Defaults to 'cache' which refers to the primary cache application component.
-     * Set this property to false if you want to disable caching table metadata.
+     * @var string|null the service id of the cache used to cache table metadata.
+     * Defaults to {@see CacheInterface::class}. Set to null to disable schema caching.
+     * @see schemaCachingDuration
      */
-    public string $schemaCacheID = 'cache';
+    public ?string $schemaCacheID = CacheInterface::class;
     /**
      * @var integer number of seconds that query results can remain valid in cache.
      * Use 0 or negative value to indicate not caching query results (the default behavior).
      *
      * In order to enable query caching, this property must be a positive
-     * integer and {@link queryCacheID} must point to a valid cache component ID.
+     * integer and {@link queryCacheID} must not be null.
      *
      * The method {@link cache()} is provided as a convenient way of setting this property
-     * and {@link queryCachingDependency} on the fly.
+     * and {@link queryCachingCount} on the fly.
      *
      * @see cache
-     * @see queryCachingDependency
      * @see queryCacheID
      * @since 1.1.7
      */
     public int $queryCachingDuration = 0;
-    /**
-     * @var CacheInterface|null the dependency that will be used when saving query results into cache.
-     * @see queryCachingDuration
-     * @since 1.1.7
-     */
-    public CacheInterface|null $queryCachingDependency = null;
     /**
      * @var integer the number of SQL statements that need to be cached next.
      * If this is 0, then even if query caching is enabled, no query will be cached.
@@ -202,18 +195,11 @@ class DbConnection
      */
     public int $queryCachingCount = 0;
     /**
-     * @var string the ID of the cache application component that is used for query caching.
-     * Defaults to 'cache' which refers to the primary cache application component.
-     * Set this property to false if you want to disable query caching.
+     * @var string|null the service id of the cache used for query caching.
+     * Defaults to {@see CacheInterface::class}. Set to null to disable query caching.
      * @since 1.1.7
      */
-    public string $queryCacheID = 'cache';
-    /**
-     * @var boolean whether the database connection should be automatically established
-     * the component is being initialized. Defaults to true. Note, this property is only
-     * effective when the CDbConnection object is used as an application component.
-     */
-    public bool $autoConnect = true;
+    public ?string $queryCacheID = CacheInterface::class;
     /**
      * @var string|null the charset used for database connection. The property is only used
      * for MySQL, MariaDB and PostgreSQL databases. Defaults to null, meaning using default charset
@@ -309,6 +295,7 @@ class DbConnection
         string $username,
         string $password,
         public readonly string $connectionName,
+        public bool $autoConnect = true,
     )
     {
         $this->connectionString = $dsn;
@@ -373,17 +360,14 @@ class DbConnection
      * without actually executing the SQL statement.
      * @param integer $duration the number of seconds that query results may remain valid in cache.
      * If this is 0, the caching will be disabled.
-     * @param CacheInterface|null $dependency the dependency that will be used when saving
-     * the query results into cache.
      * @param integer $queryCount number of SQL queries that need to be cached after calling this method. Defaults to 1,
      * meaning that the next SQL query will be cached.
      * @return static the connection instance itself.
      * @since 1.1.7
      */
-    public function cache(int $duration, ?CacheInterface $dependency = null, int $queryCount = 1): static
+    public function cache(int $duration, int $queryCount = 1): static
     {
         $this->queryCachingDuration = $duration;
-        $this->queryCachingDependency = $dependency;
         $this->queryCachingCount = $queryCount;
         return $this;
     }
@@ -468,9 +452,9 @@ class DbConnection
 
     /**
      * Returns the PDO instance.
-     * @return PDO the PDO instance, null if the connection is not established yet
+     * @return null|PDO the PDO instance, null if the connection is not established yet
      */
-    public function getPdoInstance(): PDO
+    public function getPdoInstance(): ?PDO
     {
         return $this->_pdo;
     }

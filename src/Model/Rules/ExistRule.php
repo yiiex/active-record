@@ -90,7 +90,7 @@ class ExistRule extends AbstractRule
         $finder = $this->getModel($className);
         $table = $finder->getTableSchema();
         if (($column = $table->getColumn($attributeName)) === null) {
-            throw new DbException('Table "%s" does not have a column named "%s".', $table->name, $attributeName);
+            throw new DbException(sprintf('Table "%s" does not have a column named "%s".', $table->name, $attributeName));
         }
 
         $columnName = $column->rawName;
@@ -103,7 +103,7 @@ class ExistRule extends AbstractRule
         $criteria->params[$valueParamName] = $value;
 
         if (!$finder->exists($criteria)) {
-            $this->validator->addError($attribute, $this->message !== null ? $this->message : '{attribute} "{value}" is invalid.', ['value' => $value]);
+            $this->validator->addError($attribute, $this->message !== null ? $this->message : '{attribute} "{value}" is invalid.', ['{value}' => $value]);
         }
     }
 

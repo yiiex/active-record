@@ -514,6 +514,24 @@ class DbCommandBuilder
     }
 
     /**
+     * Alters the SQL to apply UNION.
+     *
+     * MySQL, PostgreSQL, Oracle, and MSSQL support parenthesized SELECT statements
+     * in UNION clauses, which allows per-branch ORDER BY and LIMIT.
+     *
+     * @param string $sql SQL query string without UNION clause
+     * @param string|array $union UNION clause(s) to append
+     * @return string SQL with UNION clause (parts wrapped in parentheses)
+     */
+    public function applyUnion(string $sql, string|array $union): string
+    {
+        if ($union != '') {
+            return $sql . "\nUNION (\n" . (is_array($union) ? implode("\n) UNION (\n", $union) : $union) . ')';
+        }
+        return $sql;
+    }
+
+    /**
      * Binds parameter values for an SQL command.
      * @param DbCommand $command database command
      * @param array $values values for binding (integer-indexed array for question mark placeholders, string-indexed array for named placeholders)

@@ -11,6 +11,7 @@
 namespace Yii1x\ActiveRecord\Db;
 
 use Exception;
+use PDO;
 use PDOException;
 use PDOStatement;
 use Yii1x\ActiveRecord\Db\Schema\DbExpression;
@@ -109,7 +110,15 @@ class DbCommand
     {
         if (is_array($query)) {
             foreach ($query as $name => $value) {
-                $this->$name = $value;
+                // Mirror CComponent::__set as in Yii 1.1: property assignments go
+                // through the corresponding setter (e.g. 'join' => setJoin()) so
+                // that the array keys behave exactly like the documented properties.
+                $setter = 'set' . ucfirst($name);
+                if (method_exists($this, $setter)) {
+                    $this->$setter($value);
+                } else {
+                    $this->$name = $value;
+                }
             }
         } else {
             $this->setText($query);
@@ -150,7 +159,7 @@ class DbCommand
      */
     public function reset(): static
     {
-        $this->_text = null;
+        $this->_text = '';
         $this->_query = [];
         $this->_statement = null;
         $this->_paramLog = [];
@@ -159,13 +168,13 @@ class DbCommand
     }
 
     /**
-     * @return string the SQL statement to be executed
+     * @return null|string the SQL statement to be executed
      */
     public function getText(): string
     {
         if ($this->_text == '' && !empty($this->_query))
             $this->setText($this->buildQuery($this->_query));
-        return $this->_text;
+        return $this->_text ?? '';
     }
 
     /**
@@ -193,10 +202,10 @@ class DbCommand
     }
 
     /**
-     * @return PDOStatement the underlying PDOStatement for this command
+     * @return null|PDOStatement the underlying PDOStatement for this command
      * It could be null if the statement is not prepared yet.
      */
-    public function getPdoStatement(): PDOStatement
+    public function getPdoStatement(): ?PDOStatement
     {
         return $this->_statement;
     }
@@ -216,7 +225,7 @@ class DbCommand
                 $this->_statement = $this->getConnection()->getPdoInstance()->prepare($this->getText());
                 $this->_paramLog = [];
             } catch (Exception $e) {
-                ORMContext::log()->error('Error in preparing SQL: ' . $this->getText());
+                ORMContext::log()?->error('Error in preparing SQL: ' . $this->getText());
                 $errorInfo = $e instanceof PDOException ? $e->errorInfo : null;
                 throw new DbException(sprintf('DbCommand failed to prepare the SQL statement: %s', $e->getMessage()), (int)$e->getCode(), $errorInfo);
             }
@@ -336,7 +345,7 @@ class DbCommand
         } catch (Exception $e) {
             $errorInfo = $e instanceof PDOException ? $e->errorInfo : null;
             $message = $e->getMessage();
-            ORMContext::log()->error(
+            ORMContext::log()?->error(
                 'DbCommand::execute() failed: {message}. The SQL statement executed was: {sql}.', [
                 'message' => $message,
                 'sql' => $this->getText() . $par
@@ -470,8 +479,8 @@ class DbCommand
 
         if ($this->_connection->queryCachingCount > 0 && $method !== ''
             && $this->_connection->queryCachingDuration > 0
-            && $this->_connection->queryCacheID !== false
-            && ($cache = ORMContext::cache()) !== null) {
+            && $this->_connection->queryCacheID !== null
+            && ($cache = ORMContext::cache($this->_connection->queryCacheID)) !== null) {
             $this->_connection->queryCachingCount--;
             $cacheKey = 'yii#dbquery#' . md5(
                     $method . '#' .
@@ -511,7 +520,7 @@ class DbCommand
         } catch (Exception $e) {
             $errorInfo = $e instanceof PDOException ? $e->errorInfo : null;
             $message = $e->getMessage();
-            ORMContext::log()->error('CDbCommand::{method}() failed: {error}. The SQL statement executed was: {sql}.', [
+            ORMContext::log()?->error('CDbCommand::{method}() failed: {error}. The SQL statement executed was: {sql}.', [
                 '{method}' => $method,
                 '{error}' => $message,
                 '{sql}' => $this->getText() . $par,
@@ -557,8 +566,9 @@ class DbCommand
         if (!empty($query['having']))
             $sql .= "\nHAVING " . $query['having'];
 
-        if (!empty($query['union']))
-            $sql .= "\nUNION (\n" . (is_array($query['union']) ? implode("\n) UNION (\n", $query['union']) : $query['union']) . ')';
+        if (!empty($query['union'])) {
+            $sql = $this->_connection->getCommandBuilder()->applyUnion($sql, $query['union']);
+        }
 
         if (!empty($query['order']))
             $sql .= "\nORDER BY " . $query['order'];

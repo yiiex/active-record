@@ -10,6 +10,7 @@ namespace Yii1x\ActiveRecord\Db;
 
 use Countable;
 use Iterator;
+use PDO;
 use Yii1x\ActiveRecord\Exceptions\DbException;
 
 /**
@@ -66,7 +67,7 @@ class DbDataReader implements Iterator, Countable
      * @param integer|null $dataType Data type of the parameter
      * @see https://www.php.net/manual/en/function.PDOStatement-bindColumn.php
      */
-    public function bindColumn(mixed $column, mixed &$value, int $dataType = null): void
+    public function bindColumn(mixed $column, mixed &$value, ?int $dataType = null): void
     {
         if ($dataType === null)
             $this->_statement->bindColumn($column, $value);

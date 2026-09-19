@@ -10,11 +10,11 @@
 
 namespace Yii1x\ActiveRecord\Db\Schema\Sqlite;
 
-use Yii;
-use Yii1x\ActiveRecord\Db\DbException;
 use Yii1x\ActiveRecord\Db\Schema\DbColumnSchema;
+use Yii1x\ActiveRecord\Db\Schema\DbCommandBuilder;
 use Yii1x\ActiveRecord\Db\Schema\DbSchema;
 use Yii1x\ActiveRecord\Db\Schema\DbTableSchema;
+use Yii1x\ActiveRecord\Exceptions\DbException;
 
 /**
  * CSqliteSchema is the class for retrieving metadata information from a SQLite (2/3) database.
@@ -29,7 +29,7 @@ class SqliteSchema extends DbSchema
      * @var array the abstract column types mapped to physical column types.
      * @since 1.1.6
      */
-    public $columnTypes = array(
+    public array $columnTypes = [
         'pk' => 'integer PRIMARY KEY AUTOINCREMENT NOT NULL',
         'bigpk' => 'integer PRIMARY KEY AUTOINCREMENT NOT NULL',
         'string' => 'varchar(255)',
@@ -45,7 +45,7 @@ class SqliteSchema extends DbSchema
         'binary' => 'blob',
         'boolean' => 'tinyint(1)',
         'money' => 'decimal(19,4)',
-    );
+    ];
 
     /**
      * Resets the sequence value of a table's primary key.
@@ -72,7 +72,7 @@ class SqliteSchema extends DbSchema
             $this->getDbConnection()
                 ->createCommand("UPDATE sqlite_sequence SET seq='$value' WHERE name='{$table->name}'")
                 ->execute();
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
         }
     }
 
@@ -101,9 +101,9 @@ class SqliteSchema extends DbSchema
 
     /**
      * Creates a command builder for the database.
-     * @return SqliteCommandBuilder command builder instance
+     * @return DbCommandBuilder command builder instance
      */
-    protected function createCommandBuilder()
+    protected function createCommandBuilder(): DbCommandBuilder
     {
         return new SqliteCommandBuilder($this);
     }
@@ -111,9 +111,9 @@ class SqliteSchema extends DbSchema
     /**
      * Loads the metadata for the specified table.
      * @param string $name table name
-     * @return DbTableSchema driver dependent table metadata. Null if the table does not exist.
+     * @return null|DbTableSchema driver dependent table metadata. Null if the table does not exist.
      */
-    protected function loadTable($name)
+    protected function loadTable(string $name): ?DbTableSchema
     {
         $table = new DbTableSchema;
         $table->name = $name;
@@ -228,7 +228,7 @@ class SqliteSchema extends DbSchema
      */
     public function dropColumn($table, $column)
     {
-        throw new DbException(Yii::t('yii', 'Dropping DB column is not supported by SQLite.'));
+        throw new DbException('Dropping DB column is not supported by SQLite.');
     }
 
     /**
@@ -243,7 +243,7 @@ class SqliteSchema extends DbSchema
      */
     public function renameColumn($table, $name, $newName)
     {
-        throw new DbException(Yii::t('yii', 'Renaming a DB column is not supported by SQLite.'));
+        throw new DbException('Renaming a DB column is not supported by SQLite.');
     }
 
     /**
@@ -262,7 +262,7 @@ class SqliteSchema extends DbSchema
      */
     public function addForeignKey($name, $table, $columns, $refTable, $refColumns, $delete = null, $update = null)
     {
-        throw new DbException(Yii::t('yii', 'Adding a foreign key constraint to an existing table is not supported by SQLite.'));
+        throw new DbException('Adding a foreign key constraint to an existing table is not supported by SQLite.');
     }
 
     /**
@@ -276,7 +276,7 @@ class SqliteSchema extends DbSchema
      */
     public function dropForeignKey($name, $table)
     {
-        throw new DbException(Yii::t('yii', 'Dropping a foreign key constraint is not supported by SQLite.'));
+        throw new DbException('Dropping a foreign key constraint is not supported by SQLite.');
     }
 
     /**
@@ -293,7 +293,7 @@ class SqliteSchema extends DbSchema
      */
     public function alterColumn($table, $column, $type)
     {
-        throw new DbException(Yii::t('yii', 'Altering a DB column is not supported by SQLite.'));
+        throw new DbException('Altering a DB column is not supported by SQLite.');
     }
 
     /**
@@ -320,7 +320,7 @@ class SqliteSchema extends DbSchema
      */
     public function addPrimaryKey($name, $table, $columns)
     {
-        throw new DbException(Yii::t('yii', 'Adding a primary key after table has been created is not supported by SQLite.'));
+        throw new DbException('Adding a primary key after table has been created is not supported by SQLite.');
     }
 
 
@@ -335,7 +335,6 @@ class SqliteSchema extends DbSchema
      */
     public function dropPrimaryKey($name, $table)
     {
-        throw new DbException(Yii::t('yii', 'Removing a primary key after table has been created is not supported by SQLite.'));
-
+        throw new DbException('Removing a primary key after table has been created is not supported by SQLite.');
     }
 }

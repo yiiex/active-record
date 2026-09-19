@@ -56,15 +56,15 @@ abstract class DbMigration
         try {
             if ($this->safeUp() === false) {
                 $transaction->rollback();
-                return false;
+                throw new \RuntimeException(sprintf('Migration "%s" returned false from safeUp().', static::class));
             }
             $transaction->commit();
             return true;
-        } catch (Exception $e) {
-            echo "Exception: " . $e->getMessage() . ' (' . $e->getFile() . ':' . $e->getLine() . ")\n";
-            echo $e->getTraceAsString() . "\n";
-            $transaction->rollback();
-            return false;
+        } catch (\Throwable $e) {
+            if ($transaction->getActive()) {
+                $transaction->rollback();
+            }
+            throw $e;
         }
     }
 
@@ -79,15 +79,15 @@ abstract class DbMigration
         try {
             if ($this->safeDown() === false) {
                 $transaction->rollback();
-                return false;
+                throw new \RuntimeException(sprintf('Migration "%s" returned false from safeDown().', static::class));
             }
             $transaction->commit();
             return true;
-        } catch (Exception $e) {
-            echo "Exception: " . $e->getMessage() . ' (' . $e->getFile() . ':' . $e->getLine() . ")\n";
-            echo $e->getTraceAsString() . "\n";
-            $transaction->rollback();
-            return false;
+        } catch (\Throwable $e) {
+            if ($transaction->getActive()) {
+                $transaction->rollback();
+            }
+            throw $e;
         }
     }
 

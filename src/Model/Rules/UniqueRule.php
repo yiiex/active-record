@@ -88,7 +88,7 @@ class UniqueRule extends AbstractRule
         $finder = $this->getModel($className);
         $table = $finder->getTableSchema();
         if (($column = $table->getColumn($attributeName)) === null) {
-            throw new DbException('Table "%s" does not have a column named "%s".', $table->name, $attributeName);
+            throw new DbException(sprintf('Table "%s" does not have a column named "%s".', $table->name, $attributeName));
         }
 
         $columnName = $column->rawName;

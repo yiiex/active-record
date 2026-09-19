@@ -53,7 +53,7 @@ class MssqlCommandBuilder extends DbCommandBuilder
      * @param string $alias the alias name of the primary table. Defaults to 't'.
      * @return DbCommand query command.
      */
-    public function createFindCommand($table, $criteria, $alias = 't')
+    public function createFindCommand($table, $criteria, $alias = 't'): DbCommand
     {
         $criteria = $this->checkCriteria($table, $criteria);
         return parent::createFindCommand($table, $criteria, $alias);

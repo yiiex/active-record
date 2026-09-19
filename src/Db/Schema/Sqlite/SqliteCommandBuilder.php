@@ -66,4 +66,25 @@ class SqliteCommandBuilder extends DbCommandBuilder
         );
         return $this->composeMultipleInsertCommand($table, $data, $templates);
     }
+
+    /**
+     * Alters the SQL to apply UNION.
+     *
+     * Overrides parent method because SQLite does not support parenthesized SELECT
+     * statements directly in UNION clauses (syntax error).
+     *
+     * Users must wrap per-branch queries in subqueries instead:
+     *   ->union('SELECT * FROM (SELECT id FROM posts LIMIT 5)')
+     *
+     * @param string $sql SQL query string without UNION clause
+     * @param string|array $union UNION clause(s) to append
+     * @return string SQL with UNION clause (no parentheses)
+     */
+    public function applyUnion(string $sql, string|array $union): string
+    {
+        if ($union != '') {
+            return $sql . "\nUNION " . (is_array($union) ? implode("\nUNION ", $union) : $union);
+        }
+        return $sql;
+    }
 }

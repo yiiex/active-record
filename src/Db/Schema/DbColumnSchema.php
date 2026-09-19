@@ -69,12 +69,12 @@ class DbColumnSchema
      */
     public bool $autoIncrement = false;
     /**
-     * @var string comment of this column. Default value is empty string which means that no comment
+     * @var null|string comment of this column. Default value is empty string which means that no comment
      * has been set for the column. Null value means that RDBMS does not support column comments
      * at all (SQLite) or comment retrieval for the active RDBMS is not yet supported by the framework.
      * @since 1.1.13
      */
-    public string $comment = '';
+    public ?string $comment = '';
 
     /**
      * Initializes the column with its DB type and default value.
