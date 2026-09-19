@@ -462,4 +462,77 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $this->assertSame('user2', $row['username']);
         $this->assertSame('pass2', $row['password']);
     }
+
+    public function testArraySyntaxWithJoin(): void
+    {
+        $rows = $this->connection->createCommand([
+            'select' => 'posts.id AS id, users.username AS username',
+            'from' => 'posts',
+            'join' => 'INNER JOIN users ON users.id = posts.author_id',
+            'where' => 'users.username = :username',
+            'params' => [':username' => 'user2'],
+            'order' => 'posts.id',
+        ])->queryAll();
+
+        $this->assertSame([2, 3, 4], array_map('intval', array_column($rows, 'id')));
+        $this->assertSame(['user2', 'user2', 'user2'], array_column($rows, 'username'));
+    }
+
+    public function testArraySyntaxJoinAcceptsMultipleFragments(): void
+    {
+        $command = $this->connection->createCommand([
+            'select' => 'posts.id',
+            'from' => 'posts',
+            'join' => [
+                'INNER JOIN users ON users.id = posts.author_id',
+                'INNER JOIN profiles ON profiles.user_id = users.id',
+            ],
+            'order' => 'posts.id',
+        ]);
+
+        $this->assertSame([
+            'INNER JOIN users ON users.id = posts.author_id',
+            'INNER JOIN profiles ON profiles.user_id = users.id',
+        ], $command->getJoin());
+
+        // Post 5 has no profile, so the inner joins leave posts 1-4.
+        $this->assertSame([1, 2, 3, 4], array_map('intval', $command->queryColumn()));
+    }
+
+    public function testArraySyntaxWithDistinct(): void
+    {
+        $column = $this->connection->createCommand([
+            'select' => 'author_id',
+            'distinct' => true,
+            'from' => 'posts',
+            'order' => 'author_id',
+        ])->queryColumn();
+
+        $this->assertSame([1, 2, 3], array_map('intval', $column));
+    }
+
+    public function testArraySyntaxUnionKeepsRawValue(): void
+    {
+        // Yii 1.1 routed 'union' through setUnion(), which stores the value as-is
+        // (a string), unlike the union() method that always appends to an array.
+        $command = $this->connection->createCommand([
+            'select' => 'id',
+            'from' => 'posts',
+            'where' => 'id = 1',
+            'union' => 'SELECT id FROM posts WHERE id = 2',
+        ]);
+
+        $this->assertSame('SELECT id FROM posts WHERE id = 2', $command->getUnion());
+        $this->assertSame([1, 2], array_map('intval', $command->queryColumn()));
+    }
+
+    public function testArraySyntaxTextSetsRawSql(): void
+    {
+        $command = $this->connection->createCommand([
+            'text' => 'SELECT title FROM posts WHERE id = 1',
+        ]);
+
+        $this->assertSame('SELECT title FROM posts WHERE id = 1', $command->getText());
+        $this->assertSame('post 1', $command->queryScalar());
+    }
 }

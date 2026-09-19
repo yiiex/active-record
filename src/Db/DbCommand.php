@@ -110,20 +110,15 @@ class DbCommand
     {
         if (is_array($query)) {
             foreach ($query as $name => $value) {
-                match ($name) {
-                    'select' => $this->select($value),
-                    'from' => $this->from($value),
-                    'where' => $this->where($value),
-                    'join' => $this->join(...),
-                    'group' => $this->group($value),
-                    'having' => $this->having($value),
-                    'order' => $this->order($value),
-                    'limit' => $this->limit($value),
-                    'offset' => $this->offset($value),
-                    'union' => $this->union($value),
-                    'params' => $this->params = $value,
-                    default => $this->$name = $value,
-                };
+                // Mirror CComponent::__set as in Yii 1.1: property assignments go
+                // through the corresponding setter (e.g. 'join' => setJoin()) so
+                // that the array keys behave exactly like the documented properties.
+                $setter = 'set' . ucfirst($name);
+                if (method_exists($this, $setter)) {
+                    $this->$setter($value);
+                } else {
+                    $this->$name = $value;
+                }
             }
         } else {
             $this->setText($query);
