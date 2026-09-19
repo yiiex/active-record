@@ -7,6 +7,7 @@ namespace Yii1x\ActiveRecord\Tests\Driver\Abstract;
 use Yii1x\ActiveRecord\ActiveRecord;
 use Yii1x\ActiveRecord\Exceptions\DbException;
 use Yii1x\ActiveRecord\Tests\Infrastructure\Models\Comment;
+use Yii1x\ActiveRecord\Tests\Infrastructure\Models\Order;
 use Yii1x\ActiveRecord\Tests\Infrastructure\Models\Post;
 use Yii1x\ActiveRecord\Tests\Infrastructure\Models\User;
 
@@ -17,6 +18,7 @@ abstract class AbstractActiveRecordCrudTest extends AbstractDatabaseTest
         User::model()->refreshMetaData();
         Post::model()->refreshMetaData();
         Comment::model()->refreshMetaData();
+        Order::model()->refreshMetaData();
     }
 
     protected function setUp(): void
@@ -30,7 +32,8 @@ abstract class AbstractActiveRecordCrudTest extends AbstractDatabaseTest
         ActiveRecord::$db = null;
         parent::tearDown();
     }
-    // ===== FIND TESTS =====
+
+    // ===== FIND =====
 
     public function testFind(): void
     {
@@ -134,7 +137,7 @@ abstract class AbstractActiveRecordCrudTest extends AbstractDatabaseTest
         $this->assertCount(1, $users);
     }
 
-    // ===== SAVE TESTS =====
+    // ===== SAVE =====
 
     public function testSaveInsert(): void
     {
@@ -242,6 +245,19 @@ abstract class AbstractActiveRecordCrudTest extends AbstractDatabaseTest
         $user->update();
     }
 
+    public function testSaveAttributes(): void
+    {
+        $user = User::model()->findByPk(1);
+        $this->assertNotNull($user);
+
+        $result = $user->saveAttributes(['username' => 'updated_via_saveAttributes']);
+
+        $this->assertTrue($result);
+
+        $found = User::model()->findByPk(1);
+        $this->assertEquals('updated_via_saveAttributes', $found->username);
+    }
+
     // ===== MODEL VALIDATION =====
 
     public function testPostSaveWithValidation(): void
@@ -280,7 +296,7 @@ abstract class AbstractActiveRecordCrudTest extends AbstractDatabaseTest
         $this->assertTrue($invalid->hasErrors('content'));
     }
 
-    // ===== DELETE TESTS =====
+    // ===== DELETE =====
 
     public function testDelete(): void
     {
@@ -310,7 +326,7 @@ abstract class AbstractActiveRecordCrudTest extends AbstractDatabaseTest
         $user->delete();
     }
 
-    // ===== COUNT TESTS =====
+    // ===== COUNT & EXISTS =====
 
     public function testCount(): void
     {
@@ -338,7 +354,7 @@ abstract class AbstractActiveRecordCrudTest extends AbstractDatabaseTest
         $this->assertFalse($exists);
     }
 
-    // ===== REFRESH TESTS =====
+    // ===== REFRESH =====
 
     public function testRefresh(): void
     {
@@ -358,7 +374,7 @@ abstract class AbstractActiveRecordCrudTest extends AbstractDatabaseTest
         $this->assertEquals($oldUsername, $user->username);
     }
 
-    // ===== EQUALS TESTS =====
+    // ===== EQUALS =====
 
     public function testEquals(): void
     {
@@ -385,39 +401,6 @@ abstract class AbstractActiveRecordCrudTest extends AbstractDatabaseTest
     }
 
     // ===== BULK OPERATIONS =====
-
-    public function testSaveAttributes(): void
-    {
-        $user = User::model()->findByPk(1);
-        $this->assertNotNull($user);
-
-        $result = $user->saveAttributes(['username' => 'updated_via_saveAttributes']);
-
-        $this->assertTrue($result);
-
-        $found = User::model()->findByPk(1);
-        $this->assertEquals('updated_via_saveAttributes', $found->username);
-    }
-
-    public function testUpdateCounters(): void
-    {
-        $post = Post::model()->findByPk(1);
-        $this->assertNotNull($post);
-        $this->assertEquals(0, $post->view_count);
-
-        // Increment view_count by 1
-        $result = Post::model()->updateCounters(['view_count' => 1], 'id = 1');
-
-        $this->assertEquals(1, $result);
-
-        $updated = Post::model()->findByPk(1);
-        $this->assertEquals(1, $updated->view_count);
-
-        // Increment again
-        Post::model()->updateCounters(['view_count' => 5], 'id = 1');
-        $updated = Post::model()->findByPk(1);
-        $this->assertEquals(6, $updated->view_count);
-    }
 
     public function testUpdateByPk(): void
     {
@@ -538,5 +521,204 @@ abstract class AbstractActiveRecordCrudTest extends AbstractDatabaseTest
 
         $count = User::model()->count('email = :email', [':email' => 'same@example.com']);
         $this->assertEquals(0, $count);
+    }
+
+    // ===== COUNTERS =====
+
+    public function testUpdateCounters(): void
+    {
+        $post = Post::model()->findByPk(1);
+        $this->assertNotNull($post);
+        $this->assertSame(0, (int)$post->view_count);
+
+        // Increment view_count by 1
+        $result = Post::model()->updateCounters(['view_count' => 1], 'id = 1');
+        $this->assertSame(1, (int)$result);
+
+        $updated = Post::model()->findByPk(1);
+        $this->assertNotNull($updated);
+        $this->assertSame(1, (int)$updated->view_count);
+
+        // Increment again
+        Post::model()->updateCounters(['view_count' => 5], 'id = 1');
+        $updated = Post::model()->findByPk(1);
+        $this->assertSame(6, (int)$updated->view_count);
+    }
+
+    public function testSaveCounters(): void
+    {
+        $post = Post::model()->findByPk(1);
+        $this->assertNotNull($post);
+        $this->assertSame(0, (int)$post->view_count);
+        $this->assertSame(0, (int)$post->rating);
+
+        $this->assertTrue($post->saveCounters(['view_count' => 1, 'rating' => 2]));
+
+        // in-memory attributes are updated as well
+        $this->assertSame(1, (int)$post->view_count);
+        $this->assertSame(2, (int)$post->rating);
+
+        $reloaded = Post::model()->findByPk(1);
+        $this->assertNotNull($reloaded);
+        $this->assertSame(1, (int)$reloaded->view_count);
+        $this->assertSame(2, (int)$reloaded->rating);
+
+        // negative delta on a single counter
+        $this->assertTrue($post->saveCounters(['view_count' => -3]));
+        $this->assertSame(-2, (int)$post->view_count);
+
+        $reloaded = Post::model()->findByPk(1);
+        $this->assertSame(-2, (int)$reloaded->view_count);
+    }
+
+    // ===== SQL FINDERS =====
+
+    public function testFindBySql(): void
+    {
+        $post = Post::model()->findBySql('SELECT * FROM posts WHERE id = :id', [':id' => 2]);
+
+        $this->assertInstanceOf(Post::class, $post);
+        $this->assertSame(2, (int)$post->id);
+    }
+
+    public function testFindBySqlReturnsNullWhenNotFound(): void
+    {
+        $post = Post::model()->findBySql('SELECT * FROM posts WHERE id = :id', [':id' => 99999]);
+
+        $this->assertNull($post);
+    }
+
+    public function testFindAllBySql(): void
+    {
+        $posts = Post::model()->findAllBySql('SELECT * FROM posts WHERE id > :id', [':id' => 3]);
+
+        $this->assertCount(2, $posts);
+        $this->assertInstanceOf(Post::class, $posts[0]);
+    }
+
+    public function testCountBySql(): void
+    {
+        $this->assertEquals(5, Post::model()->countBySql('SELECT COUNT(*) FROM posts'));
+    }
+
+    public function testCountByAttributes(): void
+    {
+        $this->assertEquals(3, Post::model()->countByAttributes(['author_id' => 2]));
+        $this->assertEquals(0, Post::model()->countByAttributes(['author_id' => 999]));
+    }
+
+    // ===== ATTRIBUTES & METADATA =====
+
+    public function testHasAttribute(): void
+    {
+        $post = Post::model();
+
+        $this->assertTrue($post->hasAttribute('title'));
+        $this->assertTrue($post->hasAttribute('rating'));
+        $this->assertFalse($post->hasAttribute('nonexistent'));
+    }
+
+    public function testAttributeNames(): void
+    {
+        $this->assertSame(
+            ['id', 'title', 'create_time', 'author_id', 'content', 'view_count', 'rating'],
+            Post::model()->attributeNames()
+        );
+    }
+
+    public function testPrimaryKey(): void
+    {
+        $post = Post::model()->findByPk(2);
+        $this->assertNotNull($post);
+
+        $this->assertEquals(2, $post->getPrimaryKey());
+        $this->assertEquals(2, $post->getOldPrimaryKey());
+    }
+
+    public function testSetPrimaryKeyKeepsOldPrimaryKey(): void
+    {
+        $post = Post::model()->findByPk(1);
+        $this->assertNotNull($post);
+
+        $post->setPrimaryKey(42);
+
+        $this->assertEquals(42, $post->getPrimaryKey());
+        $this->assertEquals(1, $post->getOldPrimaryKey());
+    }
+
+    public function testCompositePrimaryKey(): void
+    {
+        $order = Order::model()->findByPk(['key1' => 1, 'key2' => 2]);
+        $this->assertNotNull($order);
+
+        $this->assertEquals(['key1' => 1, 'key2' => 2], $order->getPrimaryKey());
+    }
+
+    public function testTableAlias(): void
+    {
+        $post = new Post();
+        $this->assertSame('t', $post->getTableAlias());
+
+        $post->setTableAlias('p');
+        $this->assertSame('p', $post->getTableAlias());
+        $this->assertSame(
+            $this->connection->getSchema()->quoteTableName('p'),
+            $post->getTableAlias(true)
+        );
+    }
+
+    // ===== RELATED RECORDS =====
+
+    public function testAddRelatedRecord(): void
+    {
+        $post = Post::model()->findByPk(1);
+        $author = User::model()->findByPk(1);
+        $this->assertNotNull($post);
+        $this->assertNotNull($author);
+        $this->assertFalse($post->hasRelated('author'));
+
+        $post->addRelatedRecord('author', $author, false);
+
+        $this->assertTrue($post->hasRelated('author'));
+        $this->assertSame($author, $post->getRelated('author'));
+    }
+
+    public function testAddRelatedRecordWithIntegerIndex(): void
+    {
+        $post = Post::model()->findByPk(1);
+        $comments = Comment::model()->findAll('post_id = 1');
+        $this->assertNotNull($post);
+        $this->assertCount(3, $comments);
+
+        $post->addRelatedRecord('comments', $comments[0], true);
+        $post->addRelatedRecord('comments', $comments[1], true);
+
+        $this->assertTrue($post->hasRelated('comments'));
+        $this->assertSame([$comments[0], $comments[1]], $post->getRelated('comments'));
+    }
+
+    // ===== SERIALIZATION =====
+
+    public function testSleepReturnsPropertyNames(): void
+    {
+        $post = Post::model()->findByPk(1);
+        $this->assertNotNull($post);
+
+        $properties = $post->__sleep();
+
+        $this->assertIsArray($properties);
+        $this->assertNotEmpty($properties);
+    }
+
+    public function testSerializeRoundTrip(): void
+    {
+        $post = Post::model()->findByPk(1);
+        $this->assertNotNull($post);
+
+        $restored = unserialize(serialize($post));
+
+        $this->assertInstanceOf(Post::class, $restored);
+        $this->assertEquals($post->getPrimaryKey(), $restored->getPrimaryKey());
+        $this->assertSame($post->title, $restored->title);
     }
 }

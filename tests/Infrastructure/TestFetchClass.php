@@ -12,4 +12,5 @@ class TestFetchClass
     public int|string $author_id;
     public ?string $content = null;
     public int $view_count = 0;
+    public int $rating = 0;
 }

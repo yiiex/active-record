@@ -97,10 +97,10 @@ abstract class AbstractDbDataReaderTest extends AbstractDatabaseTest
     public function testColumnCount(): void
     {
         $reader = $this->connection->createCommand('SELECT * FROM posts')->query();
-        $this->assertEquals(6, $reader->getColumnCount());
+        $this->assertEquals(7, $reader->getColumnCount());
 
         $reader2 = $this->connection->createCommand('SELECT * FROM posts WHERE id = 11')->query();
-        $this->assertEquals(6, $reader2->getColumnCount());
+        $this->assertEquals(7, $reader2->getColumnCount());
     }
 
     // ---------------------------------------------------------------

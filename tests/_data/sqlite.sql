@@ -34,6 +34,7 @@ CREATE TABLE posts
     author_id INTEGER NOT NULL,
     content TEXT,
     view_count INTEGER NOT NULL DEFAULT 0,
+    rating INTEGER NOT NULL DEFAULT 0,
     CONSTRAINT FK_post_author FOREIGN KEY (author_id)
         REFERENCES users (id) ON DELETE CASCADE ON UPDATE RESTRICT
 );
