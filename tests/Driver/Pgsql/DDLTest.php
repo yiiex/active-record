@@ -32,7 +32,10 @@ class DDLTest extends AbstractDDLTest
         $this->assertStringContainsString('fk_to_drop', $sql);
 
         $this->connection->createCommand($sql)->execute();
-        $this->assertTrue(true);
+        $this->schema->refresh();
+
+        $table = $this->schema->getTable('test_fk_child2');
+        $this->assertArrayNotHasKey('parent_id', $table->foreignKeys);
     }
 
     public function testDropPrimaryKey(): void

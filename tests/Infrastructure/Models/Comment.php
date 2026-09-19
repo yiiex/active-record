@@ -16,9 +16,9 @@ class Comment extends ActiveRecord
     public function rules(): array
     {
         return [
-            [['content', 'post_id', 'user_id'], 'required'],
+            [['content', 'post_id', 'author_id'], 'required'],
             ['content', 'safe'],
-            [['post_id', 'user_id'], 'numerical'],
+            [['post_id', 'author_id'], 'numerical'],
         ];
     }
 

@@ -38,50 +38,19 @@ class DbSchemaTest extends AbstractDbSchemaTest
         $this->assertEquals('"id"', $idColumn->rawName);
     }
 
-    public function testResetSequence(): void
-    {
-        $table = $this->schema->getTable('users');
-
-        $this->connection->createCommand('DELETE FROM users')->execute();
-
-        $this->schema->resetSequence($table);
-
-        $this->connection->createCommand("INSERT INTO users (username, password, email) VALUES ('test', 'pass', 'email')")->execute();
-        $newId = (int)$this->connection->createCommand('SELECT MAX(id) FROM users')->queryScalar();
-
-        $this->assertEquals(1, $newId);
-    }
-
-    public function testResetSequenceWithValue(): void
-    {
-        $table = $this->schema->getTable('users');
-
-        $this->connection->createCommand('DELETE FROM users')->execute();
-
-        $this->schema->resetSequence($table, 100);
-
-        $this->connection->createCommand("INSERT INTO users (username, password, email) VALUES ('test', 'pass', 'email')")->execute();
-        $newId = (int)$this->connection->createCommand('SELECT MAX(id) FROM users')->queryScalar();
-
-        $this->assertEquals(100, $newId);
-    }
-
-    public function testCheckIntegrity(): void
-    {
-        $this->schema->checkIntegrity(false);
-        $this->schema->checkIntegrity(true);
-        $this->assertTrue(true);
-    }
-
     public function testCheckIntegrityDisabled(): void
     {
         $this->schema->checkIntegrity(false);
 
-        // This should succeed with integrity check disabled
-        $this->connection->createCommand("INSERT INTO profiles (first_name, last_name, user_id) VALUES ('orphan', 'profile', 9999)")->execute();
+        try {
+            // This should succeed with integrity check disabled
+            $this->connection->createCommand("INSERT INTO profiles (first_name, last_name, user_id) VALUES ('orphan', 'profile', 9999)")->execute();
 
-        $count = (int)$this->connection->createCommand('SELECT COUNT(*) FROM profiles WHERE user_id=9999')->queryScalar();
-        $this->assertEquals(1, $count);
+            $count = (int)$this->connection->createCommand('SELECT COUNT(*) FROM profiles WHERE user_id=9999')->queryScalar();
+            $this->assertEquals(1, $count);
+        } finally {
+            $this->schema->checkIntegrity(true);
+        }
     }
 
     public function testCheckIntegrityEnabled(): void

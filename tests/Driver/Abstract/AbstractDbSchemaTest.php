@@ -182,8 +182,8 @@ abstract class AbstractDbSchemaTest extends AbstractDatabaseTest
         $charCol = $table->getColumn('char_col');
         $this->assertEquals('string', $charCol->type);
 
-        $floatCol = $table->getColumn('float_col');
-        $this->assertContains($floatCol->type, ['double', 'string']);
+        $floatCol2 = $table->getColumn('float_col2');
+        $this->assertEquals('double', $floatCol2->type);
     }
 
     public function testColumnAllowNull(): void
@@ -238,5 +238,35 @@ abstract class AbstractDbSchemaTest extends AbstractDatabaseTest
         $table2 = $this->schema->getTable('posts');
         $this->assertNotNull($table2);
         $this->assertNotSame($table1, $table2);
+    }
+
+    // ---------------------------------------------------------------
+    //  Sequences
+    // ---------------------------------------------------------------
+
+    public function testResetSequence(): void
+    {
+        $table = $this->schema->getTable('users');
+
+        $this->connection->createCommand('DELETE FROM users')->execute();
+        $this->schema->resetSequence($table);
+
+        $this->connection->createCommand("INSERT INTO users (username, password, email) VALUES ('test', 'pass', 'email')")->execute();
+        $newId = (int)$this->connection->createCommand('SELECT MAX(id) FROM users')->queryScalar();
+
+        $this->assertEquals(1, $newId);
+    }
+
+    public function testResetSequenceWithValue(): void
+    {
+        $table = $this->schema->getTable('users');
+
+        $this->connection->createCommand('DELETE FROM users')->execute();
+        $this->schema->resetSequence($table, 100);
+
+        $this->connection->createCommand("INSERT INTO users (username, password, email) VALUES ('test', 'pass', 'email')")->execute();
+        $newId = (int)$this->connection->createCommand('SELECT MAX(id) FROM users')->queryScalar();
+
+        $this->assertEquals(100, $newId);
     }
 }

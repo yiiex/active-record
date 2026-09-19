@@ -189,7 +189,7 @@ abstract class AbstractActiveRecordCrudTest extends AbstractDatabaseTest
     {
         $user = new User();
         $user->username = 'testuser';
-        $user->email = null;           // ← null нарушает NOT NULL constraint
+        $user->email = null;           // null violates the NOT NULL constraint
         $user->password = 'password123';
 
         $this->expectException(DbException::class);
@@ -240,6 +240,44 @@ abstract class AbstractActiveRecordCrudTest extends AbstractDatabaseTest
 
         $this->expectException(DbException::class);
         $user->update();
+    }
+
+    // ===== MODEL VALIDATION =====
+
+    public function testPostSaveWithValidation(): void
+    {
+        $post = new Post();
+        $post->title = 'validated post';
+        $post->create_time = '2024-01-01';
+        $post->author_id = 1;
+
+        $this->assertTrue($post->save());
+        $this->assertNotNull($post->id);
+
+        $invalid = new Post();
+        $invalid->create_time = '2024-01-01';
+        $invalid->author_id = 1;
+
+        $this->assertFalse($invalid->save());
+        $this->assertTrue($invalid->hasErrors('title'));
+    }
+
+    public function testCommentSaveWithValidation(): void
+    {
+        $comment = new Comment();
+        $comment->content = 'validated comment';
+        $comment->post_id = 1;
+        $comment->author_id = 1;
+
+        $this->assertTrue($comment->save());
+        $this->assertNotNull($comment->id);
+
+        $invalid = new Comment();
+        $invalid->post_id = 1;
+        $invalid->author_id = 1;
+
+        $this->assertFalse($invalid->save());
+        $this->assertTrue($invalid->hasErrors('content'));
     }
 
     // ===== DELETE TESTS =====

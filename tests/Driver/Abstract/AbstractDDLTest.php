@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Yii1x\ActiveRecord\Tests\Driver\Abstract;
 
 use Yii1x\ActiveRecord\Db\Schema\DbSchema;
+use Yii1x\ActiveRecord\Exceptions\DbException;
 
 abstract class AbstractDDLTest extends AbstractDatabaseTest
 {
@@ -182,10 +183,13 @@ abstract class AbstractDDLTest extends AbstractDatabaseTest
 
         $sql = $this->schema->createIndex('idx_name', 'test_index', 'name');
         $this->assertStringContainsString('CREATE INDEX', $sql);
+        $this->assertStringContainsString('idx_name', $sql);
+        $this->assertStringContainsString('test_index', $sql);
 
         $this->connection->createCommand($sql)->execute();
-        // Index created successfully if no exception
-        $this->assertTrue(true);
+
+        // Round-trip: a successful DROP proves the index really exists
+        $this->connection->createCommand($this->schema->dropIndex('idx_name', 'test_index'))->execute();
     }
 
     public function testCreateUniqueIndex(): void
@@ -197,9 +201,14 @@ abstract class AbstractDDLTest extends AbstractDatabaseTest
 
         $sql = $this->schema->createIndex('idx_email', 'test_unique_idx', 'email', true);
         $this->assertStringContainsString('UNIQUE', $sql);
+        $this->assertStringContainsString('idx_email', $sql);
 
         $this->connection->createCommand($sql)->execute();
-        $this->assertTrue(true);
+        $this->connection->createCommand("INSERT INTO test_unique_idx (email) VALUES ('a@example.com')")->execute();
+
+        // The unique index must reject a duplicate value
+        $this->expectException(DbException::class);
+        $this->connection->createCommand("INSERT INTO test_unique_idx (email) VALUES ('a@example.com')")->execute();
     }
 
     public function testDropIndex(): void
@@ -213,9 +222,13 @@ abstract class AbstractDDLTest extends AbstractDatabaseTest
 
         $sql = $this->schema->dropIndex('idx_to_drop', 'test_drop_idx');
         $this->assertStringContainsString('DROP INDEX', $sql);
+        $this->assertStringContainsString('idx_to_drop', $sql);
 
         $this->connection->createCommand($sql)->execute();
-        $this->assertTrue(true);
+
+        // Dropping it again must fail because the index is gone
+        $this->expectException(DbException::class);
+        $this->connection->createCommand($this->schema->dropIndex('idx_to_drop', 'test_drop_idx'))->execute();
     }
 
     // ---------------------------------------------------------------
@@ -237,7 +250,10 @@ abstract class AbstractDDLTest extends AbstractDatabaseTest
         $this->assertStringContainsString('FOREIGN KEY', $sql);
 
         $this->connection->createCommand($sql)->execute();
-        $this->assertTrue(true);
+        $this->schema->refresh();
+
+        $table = $this->schema->getTable('test_fk_child');
+        $this->assertArrayHasKey('parent_id', $table->foreignKeys);
     }
 
     public function testDropForeignKey(): void
@@ -258,7 +274,10 @@ abstract class AbstractDDLTest extends AbstractDatabaseTest
         $this->assertStringContainsString('FOREIGN KEY', $sql);
 
         $this->connection->createCommand($sql)->execute();
-        $this->assertTrue(true);
+        $this->schema->refresh();
+
+        $table = $this->schema->getTable('test_fk_child2');
+        $this->assertArrayNotHasKey('parent_id', $table->foreignKeys);
     }
 
     // ---------------------------------------------------------------

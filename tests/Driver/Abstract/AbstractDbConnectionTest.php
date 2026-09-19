@@ -71,14 +71,16 @@ abstract class AbstractDbConnectionTest extends AbstractDatabaseTest
     }
 
     // ---------------------------------------------------------------
-    //  Создание команд
+    //  Command creation
     // ---------------------------------------------------------------
 
     public function testCreateCommand(): void
     {
         $sql = 'SELECT * FROM posts';
         $command = $this->connection->createCommand($sql);
-        $this->assertNotNull($command);
+
+        $this->assertSame($sql, $command->getText());
+        $this->assertSame($this->connection, $command->getConnection());
     }
 
     // ---------------------------------------------------------------
@@ -87,14 +89,16 @@ abstract class AbstractDbConnectionTest extends AbstractDatabaseTest
 
     public function testLastInsertID(): void
     {
+        $maxBefore = (int)$this->connection->createCommand('SELECT MAX(id) FROM posts')->queryScalar();
+
         $sql = "INSERT INTO posts(title,create_time,author_id) VALUES('test post','2000-01-01',1)";
         $this->connection->createCommand($sql)->execute();
 
-        $this->assertEquals(6, $this->connection->getLastInsertID());
+        $this->assertEquals($maxBefore + 1, (int)$this->connection->getLastInsertID());
     }
 
     // ---------------------------------------------------------------
-    //  Экранирование значений
+    //  Value quoting
     // ---------------------------------------------------------------
 
     public function testQuoteValue(): void
@@ -106,20 +110,32 @@ abstract class AbstractDbConnectionTest extends AbstractDatabaseTest
     }
 
     // ---------------------------------------------------------------
-    //  PDO атрибуты
+    //  PDO attributes
     // ---------------------------------------------------------------
 
     public function testColumnNameCase(): void
     {
-        $this->assertEquals(PDO::CASE_NATURAL, $this->connection->getColumnCase());
-        $this->connection->setColumnCase(PDO::CASE_LOWER);
-        $this->assertEquals(PDO::CASE_LOWER, $this->connection->getColumnCase());
+        $default = $this->connection->getColumnCase();
+
+        try {
+            $this->assertSame(PDO::CASE_NATURAL, $default);
+            $this->connection->setColumnCase(PDO::CASE_LOWER);
+            $this->assertSame(PDO::CASE_LOWER, $this->connection->getColumnCase());
+        } finally {
+            $this->connection->setColumnCase($default);
+        }
     }
 
     public function testNullConversion(): void
     {
-        $this->assertEquals(PDO::NULL_NATURAL, $this->connection->getNullConversion());
-        $this->connection->setNullConversion(PDO::NULL_EMPTY_STRING);
-        $this->assertEquals(PDO::NULL_EMPTY_STRING, $this->connection->getNullConversion());
+        $default = $this->connection->getNullConversion();
+
+        try {
+            $this->assertSame(PDO::NULL_NATURAL, $default);
+            $this->connection->setNullConversion(PDO::NULL_EMPTY_STRING);
+            $this->assertSame(PDO::NULL_EMPTY_STRING, $this->connection->getNullConversion());
+        } finally {
+            $this->connection->setNullConversion($default);
+        }
     }
 }

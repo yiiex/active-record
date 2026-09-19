@@ -44,13 +44,17 @@ abstract class AbstractDbCommandTest extends AbstractDatabaseTest
 
     public function testSetTextAppliesTablePrefix(): void
     {
-        $this->connection->tablePrefix = 'tbl_';
+        $originalPrefix = $this->connection->tablePrefix;
 
-        $command = $this->connection->createCommand('SELECT * FROM {{posts}}');
+        try {
+            $this->connection->tablePrefix = 'tbl_';
 
-        $this->assertSame('SELECT * FROM tbl_posts', $command->getText());
+            $command = $this->connection->createCommand('SELECT * FROM {{posts}}');
 
-        $this->connection->tablePrefix = null;
+            $this->assertSame('SELECT * FROM tbl_posts', $command->getText());
+        } finally {
+            $this->connection->tablePrefix = $originalPrefix;
+        }
     }
 
     public function testGetConnection(): void

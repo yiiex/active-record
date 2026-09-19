@@ -23,9 +23,10 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command = $this->connection->createCommand();
         $command->select('id, username');
 
-        // Just verify it's not empty and contains the columns
-        $this->assertStringContainsString('id', $command->getSelect());
-        $this->assertStringContainsString('username', $command->getSelect());
+        $this->assertSame(
+            $this->connection->quoteColumnName('id') . ', ' . $this->connection->quoteColumnName('username'),
+            $command->getSelect()
+        );
     }
 
     public function testSelectArray(): void
@@ -33,8 +34,10 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command = $this->connection->createCommand();
         $command->select(['id', 'username']);
 
-        $this->assertStringContainsString('id', $command->getSelect());
-        $this->assertStringContainsString('username', $command->getSelect());
+        $this->assertSame(
+            $this->connection->quoteColumnName('id') . ', ' . $this->connection->quoteColumnName('username'),
+            $command->getSelect()
+        );
     }
 
     public function testSelectWithAlias(): void
@@ -42,8 +45,11 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command = $this->connection->createCommand();
         $command->select(['id AS post_id', 'title']);
 
-        $this->assertStringContainsString('AS', $command->getSelect());
-        $this->assertStringContainsString('post_id', $command->getSelect());
+        $this->assertSame(
+            $this->connection->quoteColumnName('id') . ' AS ' . $this->connection->quoteColumnName('post_id')
+            . ', ' . $this->connection->quoteColumnName('title'),
+            $command->getSelect()
+        );
     }
 
     // ---------------------------------------------------------------
@@ -62,7 +68,7 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command = $this->connection->createCommand();
         $command->from('posts');
 
-        $this->assertStringContainsString('posts', $command->getFrom());
+        $this->assertSame($this->connection->quoteTableName('posts'), $command->getFrom());
     }
 
     public function testFromArray(): void
@@ -70,8 +76,10 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command = $this->connection->createCommand();
         $command->from(['posts', 'users']);
 
-        $this->assertStringContainsString('posts', $command->getFrom());
-        $this->assertStringContainsString('users', $command->getFrom());
+        $this->assertSame(
+            $this->connection->quoteTableName('posts') . ', ' . $this->connection->quoteTableName('users'),
+            $command->getFrom()
+        );
     }
 
     public function testFromWithAlias(): void
@@ -79,7 +87,10 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command = $this->connection->createCommand();
         $command->from('posts p');
 
-        $this->assertStringContainsString('posts', $command->getFrom());
+        $this->assertSame(
+            $this->connection->quoteTableName('posts') . ' ' . $this->connection->quoteTableName('p'),
+            $command->getFrom()
+        );
     }
 
     // ---------------------------------------------------------------
@@ -99,8 +110,8 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command = $this->connection->createCommand();
         $command->where('id = :id', [':id' => 1]);
 
-        $this->assertStringContainsString('id', $command->getWhere());
-        $this->assertEquals([':id' => 1], $command->params);
+        $this->assertSame('id = :id', $command->getWhere());
+        $this->assertSame([':id' => 1], $command->params);
     }
 
     public function testWhereArrayAnd(): void
@@ -108,7 +119,7 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command = $this->connection->createCommand();
         $command->where(['and', 'id = 1', 'author_id = 2']);
 
-        $this->assertStringContainsString('AND', $command->getWhere());
+        $this->assertSame('(id = 1) AND (author_id = 2)', $command->getWhere());
     }
 
     public function testWhereArrayOr(): void
@@ -116,7 +127,7 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command = $this->connection->createCommand();
         $command->where(['or', 'id = 1', 'id = 2']);
 
-        $this->assertStringContainsString('OR', $command->getWhere());
+        $this->assertSame('(id = 1) OR (id = 2)', $command->getWhere());
     }
 
     public function testWhereArrayIn(): void
@@ -124,7 +135,7 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command = $this->connection->createCommand();
         $command->where(['in', 'id', [1, 2, 3]]);
 
-        $this->assertStringContainsString('IN', $command->getWhere());
+        $this->assertSame($this->connection->quoteColumnName('id') . ' IN (1, 2, 3)', $command->getWhere());
     }
 
     public function testWhereArrayInEmpty(): void
@@ -140,7 +151,7 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command = $this->connection->createCommand();
         $command->where(['not in', 'id', [1, 2, 3]]);
 
-        $this->assertStringContainsString('NOT IN', $command->getWhere());
+        $this->assertSame($this->connection->quoteColumnName('id') . ' NOT IN (1, 2, 3)', $command->getWhere());
     }
 
     public function testWhereArrayLike(): void
@@ -148,7 +159,10 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command = $this->connection->createCommand();
         $command->where(['like', 'title', '%test%']);
 
-        $this->assertStringContainsString('LIKE', $command->getWhere());
+        $this->assertSame(
+            $this->connection->quoteColumnName('title') . ' LIKE ' . $this->connection->quoteValue('%test%'),
+            $command->getWhere()
+        );
     }
 
     public function testWhereArrayLikeMultiple(): void
@@ -156,9 +170,12 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command = $this->connection->createCommand();
         $command->where(['like', 'title', ['%test%', '%post%']]);
 
-        $where = $command->getWhere();
-        $this->assertStringContainsString('LIKE', $where);
-        $this->assertStringContainsString('AND', $where);
+        $title = $this->connection->quoteColumnName('title');
+        $this->assertSame(
+            $title . ' LIKE ' . $this->connection->quoteValue('%test%')
+            . ' AND ' . $title . ' LIKE ' . $this->connection->quoteValue('%post%'),
+            $command->getWhere()
+        );
     }
 
     // ---------------------------------------------------------------
@@ -171,10 +188,7 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command->where('id = 1');
         $command->andWhere('author_id = 2');
 
-        $where = $command->getWhere();
-        $this->assertStringContainsString('id', $where);
-        $this->assertStringContainsString('author_id', $where);
-        $this->assertStringContainsString('AND', $where);
+        $this->assertSame('(id = 1) AND (author_id = 2)', $command->getWhere());
     }
 
     public function testOrWhere(): void
@@ -183,9 +197,7 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command->where('id = 1');
         $command->orWhere('id = 2');
 
-        $where = $command->getWhere();
-        $this->assertStringContainsString('id', $where);
-        $this->assertStringContainsString('OR', $where);
+        $this->assertSame('(id = 1) OR (id = 2)', $command->getWhere());
     }
 
     // ---------------------------------------------------------------
@@ -206,9 +218,10 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
 
         $join = $command->getJoin();
         $this->assertIsArray($join);
-        $this->assertCount(1, $join);
-        $this->assertStringContainsString('JOIN', $join[0]);
-        $this->assertStringContainsString('users', $join[0]);
+        $this->assertSame(
+            'JOIN ' . $this->connection->quoteTableName('users') . ' ON users.id = posts.author_id',
+            $join[0]
+        );
     }
 
     public function testJoinLeft(): void
@@ -218,7 +231,10 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
 
         $join = $command->getJoin();
         $this->assertIsArray($join);
-        $this->assertStringContainsString('LEFT JOIN', $join[0]);
+        $this->assertSame(
+            'LEFT JOIN ' . $this->connection->quoteTableName('users') . ' ON users.id = posts.author_id',
+            $join[0]
+        );
     }
 
     public function testJoinRight(): void
@@ -228,7 +244,10 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
 
         $join = $command->getJoin();
         $this->assertIsArray($join);
-        $this->assertStringContainsString('RIGHT JOIN', $join[0]);
+        $this->assertSame(
+            'RIGHT JOIN ' . $this->connection->quoteTableName('users') . ' ON users.id = posts.author_id',
+            $join[0]
+        );
     }
 
     public function testJoinCross(): void
@@ -238,7 +257,7 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
 
         $join = $command->getJoin();
         $this->assertIsArray($join);
-        $this->assertStringContainsString('CROSS JOIN', $join[0]);
+        $this->assertSame('CROSS JOIN ' . $this->connection->quoteTableName('users'), $join[0]);
     }
 
     public function testJoinNatural(): void
@@ -248,7 +267,7 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
 
         $join = $command->getJoin();
         $this->assertIsArray($join);
-        $this->assertStringContainsString('NATURAL JOIN', $join[0]);
+        $this->assertSame('NATURAL JOIN ' . $this->connection->quoteTableName('users'), $join[0]);
     }
 
     // ---------------------------------------------------------------
@@ -267,7 +286,7 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command = $this->connection->createCommand();
         $command->group('author_id');
 
-        $this->assertStringContainsString('author_id', $command->getGroup());
+        $this->assertSame($this->connection->quoteColumnName('author_id'), $command->getGroup());
     }
 
     public function testGroupArray(): void
@@ -275,9 +294,10 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command = $this->connection->createCommand();
         $command->group(['author_id', 'status']);
 
-        $group = $command->getGroup();
-        $this->assertStringContainsString('author_id', $group);
-        $this->assertStringContainsString('status', $group);
+        $this->assertSame(
+            $this->connection->quoteColumnName('author_id') . ', ' . $this->connection->quoteColumnName('status'),
+            $command->getGroup()
+        );
     }
 
     // ---------------------------------------------------------------
@@ -296,7 +316,7 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command = $this->connection->createCommand();
         $command->having('COUNT(*) > 5');
 
-        $this->assertStringContainsString('COUNT', $command->getHaving());
+        $this->assertSame('COUNT(*) > 5', $command->getHaving());
     }
 
     // ---------------------------------------------------------------
@@ -315,8 +335,7 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command = $this->connection->createCommand();
         $command->order('id DESC');
 
-        $this->assertStringContainsString('id', $command->getOrder());
-        $this->assertStringContainsString('DESC', $command->getOrder());
+        $this->assertSame($this->connection->quoteColumnName('id') . ' DESC', $command->getOrder());
     }
 
     public function testOrderArray(): void
@@ -324,9 +343,11 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command = $this->connection->createCommand();
         $command->order(['id DESC', 'title ASC']);
 
-        $order = $command->getOrder();
-        $this->assertStringContainsString('id', $order);
-        $this->assertStringContainsString('title', $order);
+        $this->assertSame(
+            $this->connection->quoteColumnName('id') . ' DESC, '
+            . $this->connection->quoteColumnName('title') . ' ASC',
+            $command->getOrder()
+        );
     }
 
     // ---------------------------------------------------------------
@@ -388,9 +409,7 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command = $this->connection->createCommand();
         $command->union('SELECT id FROM comments');
 
-        $union = $command->getUnion();
-        $this->assertIsArray($union);
-        $this->assertCount(1, $union);
+        $this->assertSame(['SELECT id FROM comments'], $command->getUnion());
     }
 
     public function testUnionMultiple(): void
@@ -399,9 +418,10 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
         $command->union('SELECT id FROM comments');
         $command->union('SELECT id FROM categories');
 
-        $union = $command->getUnion();
-        $this->assertIsArray($union);
-        $this->assertCount(2, $union);
+        $this->assertSame(
+            ['SELECT id FROM comments', 'SELECT id FROM categories'],
+            $command->getUnion()
+        );
     }
 
     // ---------------------------------------------------------------
@@ -418,15 +438,12 @@ abstract class AbstractDbCommandQueryBuilderTest extends AbstractDatabaseTest
             ->limit(2, 1)
             ->queryAll();
 
-        // Should get 2 rows (LIMIT 2)
         $this->assertCount(2, $rows);
 
-        // All should have author_id = 2
         foreach ($rows as $row) {
             $this->assertEquals(2, $row['author_id']);
         }
 
-        // First should have higher id than second (ORDER BY id DESC)
         $this->assertGreaterThan($rows[1]['id'], $rows[0]['id']);
     }
 

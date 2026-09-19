@@ -16,10 +16,10 @@ class Post extends ActiveRecord
     public function rules(): array
     {
         return [
-            [['title', 'user_id'], 'required'],
+            [['title', 'author_id'], 'required'],
             ['title', 'length', 'max' => 255],
             ['content', 'safe'],
-            ['user_id', 'numerical'],
+            ['author_id', 'numerical'],
         ];
     }
 

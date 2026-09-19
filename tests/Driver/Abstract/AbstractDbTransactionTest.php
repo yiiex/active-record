@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Yii1x\ActiveRecord\Tests\Driver\Abstract;
 
+use Yii1x\ActiveRecord\Exceptions\DbException;
+
 abstract class AbstractDbTransactionTest extends AbstractDatabaseTest
 {
     protected bool $useTransaction = false;
@@ -13,16 +15,20 @@ abstract class AbstractDbTransactionTest extends AbstractDatabaseTest
         $sql = "INSERT INTO posts(id, title, create_time, author_id) VALUES(10, 'test post', '2000-01-01', 1)";
         $transaction = $this->connection->beginTransaction();
 
+        $this->connection->createCommand($sql)->execute();
+
+        $duplicateRaised = false;
         try {
-            $this->connection->createCommand($sql)->execute();
-            $this->connection->createCommand($sql)->execute(); // Should fail (duplicate ID)
-            $this->fail('Expected exception not raised');
-            $transaction->commit();
-        } catch (\Exception $e) {
-            $transaction->rollback();
-            $reader = $this->connection->createCommand('SELECT * FROM posts WHERE id=10')->query();
-            $this->assertFalse($reader->read());
+            $this->connection->createCommand($sql)->execute(); // duplicate ID
+        } catch (DbException) {
+            $duplicateRaised = true;
         }
+
+        $transaction->rollback();
+
+        $this->assertTrue($duplicateRaised, 'Inserting a duplicate primary key should throw');
+        $reader = $this->connection->createCommand('SELECT * FROM posts WHERE id=10')->query();
+        $this->assertFalse($reader->read());
     }
 
     public function testCommit(): void
@@ -35,7 +41,7 @@ abstract class AbstractDbTransactionTest extends AbstractDatabaseTest
             $this->assertTrue($transaction->getActive());
             $transaction->commit();
             $this->assertFalse($transaction->getActive());
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $transaction->rollback();
             $this->fail('Unexpected exception');
         }
