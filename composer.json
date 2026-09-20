@@ -16,7 +16,7 @@
     "prefer-stable": true,
     "require": {
         "php": "^8.4",
-        "yii1x/validator": "^0.1.0",
+        "yii1x/validator": "^0.2.0",
         "psr/container": "^2.0",
         "psr/log": "^3.0",
         "psr/simple-cache": "^3.0",
